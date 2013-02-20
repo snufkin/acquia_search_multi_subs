@@ -1,0 +1,129 @@
+<?php
+
+
+/**
+ * Edit the environment form to connect to acquia search
+ * 
+ * @param type $form
+ * @param type $form_state
+ */
+function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$form, $form_state) {
+  // Gets environment from form, gets connection status to Acquia Search.
+  $env_id = isset($form['env_id']['#default_value']) ? $form['env_id']['#default_value'] : '';
+  $environment = ($env_id) ? apachesolr_environment_load($env_id) : FALSE;
+
+  if ($form['service_class']['#value'] == 'AcquiaSearchService') {
+    // Add options to connect to Acquia
+    $form['acquia_search'] = array(
+      '#type' => 'checkbox',
+      '#title' => 'Connect to a different Acquia Subscription',
+      '#default_value' => isset($environment['conf']['acquia_search']) ? $environment['conf']['acquia_search'] : '',
+      '#weight' => 10,
+    );
+
+    $form['acquia_override_subscription'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Configure Acquia Search'),
+      '#description' => t('This is usually not necessary unless you really want this
+        search environment to connect to a different Acquia search subscription.
+        by default it uses your subscription that was configured in the !acquiaagent.', array('!acquiaagent' => l('Acquia Agent','admin/config/system/acquia-agent'))),
+      '#collapsed' => TRUE,
+      '#collapsible' => TRUE,
+      '#weight' => 11,
+      '#states' => array(
+        'visible' => array(
+          ':input[name="acquia_search"]' => array('checked' => TRUE),
+        ),
+      ),
+    );
+
+    $form['acquia_override_subscription']['acquia_override_subscription_id'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Enter your Acquia Subscription Identifier'),
+      '#default_value' => isset($environment['conf']['acquia_override_subscription_id']) ? $environment['conf']['acquia_override_subscription_id'] : '',
+    );
+    $form['acquia_override_subscription']['acquia_override_subscription_key'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Enter your Acquia Subscription key'),
+      '#default_value' => isset($environment['conf']['acquia_override_subscription_key']) ? $environment['conf']['acquia_override_subscription_key'] : '',
+    );
+
+    array_unshift($form['actions']['save']['#validate'], 'acquia_search_multi_subs_environment_edit_form_validate');
+    array_unshift($form['actions']['save']['#submit'], 'acquia_search_multi_subs_environment_edit_form_submit');
+    array_unshift($form['actions']['save_edit']['#validate'], 'acquia_search_multi_subs_environment_edit_form_validate');
+    array_unshift($form['actions']['save_edit']['#submit'], 'acquia_search_multi_subs_environment_edit_form_submit');
+  }
+
+}
+
+/**
+ * Validate if the values given are correct
+ * @param type $form
+ * @param type $form_state
+ */
+function acquia_search_multi_subs_environment_edit_form_validate($form, &$form_state) {
+  // Only activate if the checkbox has been enabled and there is valid content
+  if(!empty($form_state['values']['acquia_search'])) {
+    if ($form_state['values']['acquia_override_subscription_id'] == '') {
+      form_set_error('acquia_override_subscription_id', t('You must at least fill in a valid Acquia Subscription Identifier.'));
+    }
+    if ($form_state['values']['acquia_override_subscription_key'] == '') {
+      form_set_error('acquia_override_subscription_key', t('You must at least fill in a valid Acquia Subscription key.'));
+    }
+
+    // Set the identifier and key
+    $identifier = $form_state['values']['acquia_override_subscription_id'];
+    $key = $form_state['values']['acquia_override_subscription_key'];
+
+    $subscription = acquia_agent_get_subscription(array(), $identifier, $key);
+    if (is_int($subscription)) {
+      form_set_error('acquia_override_subscription_key', t('This combination of ID and key is not valid.'));
+    }
+  }
+}
+
+/**
+ * Adds the values to the environment variable array so Acquia Search will work
+ * 
+ * @param type $form
+ * @param type $form_state
+ */
+function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_state) {
+  // Only activate if the checkbox has been enabled and there is valid content
+  // Add our overrides to the configuration
+  $overrive_values = array();
+  $override_values['env_id'] = $form['env_id']['#default_value'];
+  $override_values['name'] = $form_state['values']['name'];
+  
+  if(!empty($form_state['values']['acquia_search'])) {
+    // Set the identifier and key
+    $identifier = $form_state['values']['acquia_override_subscription_id'];
+    $key = $form_state['values']['acquia_override_subscription_key'];
+
+    // Add our acquia_connection check to this environment
+    $form_state['values']['conf']['acquia_search'] = $form_state['values']['acquia_search'];
+
+    // Save that to our confs per environment, anything outside of conf is
+    // ignored as extra value, so adding it to that array so it can be saved
+    $form_state['values']['conf']['acquia_override_subscription_id'] = $identifier;
+    $form_state['values']['conf']['acquia_override_subscription_key'] = $key;
+
+    // Set the derived key for this environment
+    $subscription = acquia_agent_get_subscription(array(), $identifier, $key);
+    $derived_key_salt = $subscription['derived_key_salt'];
+    $derived_key = _acquia_search_create_derived_key($derived_key_salt, $identifier, $key);
+
+    $form_state['values']['conf']['acquia_search_key'] = $derived_key;
+
+    $override_values['acquia_subscription_id'] = $identifier;
+    $override_values['acquia_subscription_key'] = $key;
+
+    // merge with our defaults
+    $form_state['values'] = array_merge($form_state['values'], acquia_search_get_environment($override_values));
+  }
+  else {
+    // Add our acquia_connection check to this environment
+    $form_state['values']['conf']['acquia_search'] = $form_state['values']['acquia_search'];
+    $form_state['values'] = array_merge($form_state['values'], acquia_search_get_environment($override_values));
+  }
+}
