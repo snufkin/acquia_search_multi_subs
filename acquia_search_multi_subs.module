@@ -11,6 +11,7 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
   // Gets environment from form, gets connection status to Acquia Search.
   $env_id = isset($form['env_id']['#default_value']) ? $form['env_id']['#default_value'] : '';
   $environment = ($env_id) ? apachesolr_environment_load($env_id) : FALSE;
+  dsm($environment);
 
   if ($form['service_class']['#value'] == 'AcquiaSearchService') {
     // Add options to connect to Acquia
@@ -124,6 +125,12 @@ function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_sta
   else {
     // Add our acquia_connection check to this environment
     $form_state['values']['conf']['acquia_search'] = $form_state['values']['acquia_search'];
+    unset($form_state['values']['conf']['acquia_search_key']);
+    unset($form_state['values']['conf']['acquia_subscription_id']);
+    unset($form_state['values']['conf']['acquia_subscription_key']);
+    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_search_key');
+    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_id');
+    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_key');
     $form_state['values'] = array_merge($form_state['values'], acquia_search_get_environment($override_values));
   }
 }
