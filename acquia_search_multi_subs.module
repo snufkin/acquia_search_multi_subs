@@ -11,7 +11,6 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
   // Gets environment from form, gets connection status to Acquia Search.
   $env_id = isset($form['env_id']['#default_value']) ? $form['env_id']['#default_value'] : '';
   $environment = ($env_id) ? apachesolr_environment_load($env_id) : FALSE;
-  dsm($environment);
 
   if ($form['service_class']['#value'] == 'AcquiaSearchService') {
     // Add options to connect to Acquia
