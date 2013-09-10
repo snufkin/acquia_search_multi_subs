@@ -3,7 +3,7 @@
 
 /**
  * Edit the environment form to connect to acquia search
- * 
+ *
  * Implements hook_form_FORM_ID_alter().
  *
  * @param type $form
@@ -85,7 +85,7 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
     if (isset($form_state['values']['acquia_override_selector'])) {
       if (is_array($search_cores)) {
         foreach ($search_cores as $search_core) {
-          if ($search_core['core_id'] == $form_state['values']['acquia_override_selector']) {            
+          if ($search_core['core_id'] == $form_state['values']['acquia_override_selector']) {
             $acquia_search_core = $search_core['core_id'];
             break;
           }
@@ -179,7 +179,7 @@ function acquia_search_multi_subs_environment_edit_form_validate($form, &$form_s
 
 /**
  * Adds the values to the environment variable array so Acquia Search will work
- * 
+ *
  * @param type $form
  * @param type $form_state
  */
@@ -298,7 +298,7 @@ function acquia_search_multi_subs_init() {
         $expected_core_name = $subscription_id;
       }
       else {
-        $expected_core_name = $subscription_id . '_' . $ah_site_name . $ah_site_environment;
+        $expected_core_name = $subscription_id . '_' . $ah_site_name;
       }
 
       // We know we have to switch automatically so we check if our core name
@@ -325,7 +325,7 @@ function acquia_search_multi_subs_init() {
             // Generate the url where this core should connect to
             $url = 'http://' . $search_core['balancer'] . variable_get('acquia_search_path', '/solr/'. $expected_core_name);
             $apachesolr_environments[$env_id]['url'] = $url;
-            // Set our variable, needs two page loads to make sure it is in the 
+            // Set our variable, needs two page loads to make sure it is in the
             // system. Setting the global conf variable is not valid as some
             // calls to apachesolr_load_all_environments happen too early in
             // the process. If we set the variable, we are sure it is there in
