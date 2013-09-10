@@ -1,0 +1,20 @@
+<?php
+
+/**
+ * Remove variables from any environment that would have this information
+ *
+ * Implements hook_uninstall().
+ */
+function acquia_search_multi_subs_uninstall() {
+  variable_del('apachesolr_environments');
+  $environments = apachesolr_load_all_environments();
+  foreach ($environments as $environment) {
+    unset($environment['conf']['acquia_search_key']);
+    unset($environment['conf']['acquia_override_subscription_corename']);
+    unset($environment['conf']['acquia_override_selector']);
+    unset($environment['conf']['acquia_override_subscription_key']);
+    unset($environment['conf']['acquia_override_subscription_id']);
+    unset($environment['conf']['acquia_override_auto_switch']);
+    apachesolr_environment_save($environment);
+  }
+}

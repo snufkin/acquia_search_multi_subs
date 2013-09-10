@@ -4,6 +4,8 @@
 /**
  * Edit the environment form to connect to acquia search
  * 
+ * Implements hook_form_FORM_ID_alter().
+ *
  * @param type $form
  * @param type $form_state
  */
@@ -14,25 +16,6 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
   $search_cores = array();
 
   if ($form['service_class']['#value'] == 'AcquiaSearchService') {
-
-    $subscription = acquia_agent_settings('acquia_subscription_data');
-
-    /*$subscription['heartbeat_data']['search_cores'] = array(
-      array(
-        'core_id' => 'ADEG-33265_guvannuhstg',
-      ),
-      array(
-        'core_id' => 'ADEG-33265_guvannuhdev',
-      ),
-      array(
-        'core_id' => 'ADEG-33265',
-      ),
-    );*/
-
-    // Get our search cores if they exist
-    if (isset($subscription['heartbeat_data']['search_cores'])) {
-      $search_cores = $subscription['heartbeat_data']['search_cores'];
-    }
 
     // Add options to connect to Acquia
     $form['acquia_search'] = array(
@@ -64,8 +47,9 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       ),
     );
 
+    // Add a form element to make it easier to choose from your multiple cores
     $options = array('other' => t('Other'));
-    // Add a form element to make it easier to choose from your multiple cores    
+    $search_cores = acquia_search_multi_subs_get_search_cores();
     if (is_array($search_cores)) {
       foreach ($search_cores as $search_core) {
         $options[$search_core['core_id']] = $search_core['core_id'];
@@ -77,7 +61,7 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
        '#type' => 'select',
        '#title' => t('Acquia Search Core'),
        '#options' => $options,
-       '#default_value' => 'other',
+       '#default_value' => isset($environment['conf']['acquia_override_selector']) ? $environment['conf']['acquia_override_selector'] : '',
        '#description' => t('Choose any of the available search cores or manually define one by choosing other.'),
        '#ajax' => array(
         'callback' => 'acquia_override_subscription_data',
@@ -215,6 +199,7 @@ function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_sta
     // Add our acquia_connection check to this environment
     $form_state['values']['conf']['acquia_search'] = $form_state['values']['acquia_search'];
     $form_state['values']['conf']['acquia_override_auto_switch'] = $form_state['values']['acquia_override_auto_switch'];
+    $form_state['values']['conf']['acquia_override_selector'] = $form_state['values']['acquia_override_selector'];
 
     // Save that to our confs per environment, anything outside of conf is
     // ignored as extra value, so adding it to that array so it can be saved
@@ -233,7 +218,6 @@ function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_sta
 
     $derived_key_salt = $subscription['derived_key_salt'];
     $derived_key = _acquia_search_create_derived_key($derived_key_salt, $corename, $key);
-
     $form_state['values']['conf']['acquia_search_key'] = $derived_key;
 
     $override_values['acquia_subscription_id'] = $identifier;
@@ -262,6 +246,11 @@ function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_sta
 
 /**
  * Alter the environment before it gets saved
+ *
+ * Implements hook_acquia_search_enable_alter().
+ *
+ * @param array $environment
+ *   The environment that is being enabled by the Acquia Search module.
  */
 function acquia_search_multi_subs_acquia_search_enable_alter(&$environment) {
   $corename = apachesolr_environment_variable_get($environment['env_id'], 'acquia_override_subscription_corename');
@@ -275,4 +264,99 @@ function acquia_search_multi_subs_acquia_search_enable_alter(&$environment) {
   }
   $url = 'http://' . $search_host . variable_get('acquia_search_path', '/solr/'. $corename);
   $environment['url'] = $url;
+}
+
+/**
+ * Change the Acquia Search environment on the fly based on the
+ * AH_SITE_ENVIRONMENT and AH_SITE_NAME server variable
+ *
+ * Implements hook_init().
+ */
+function acquia_search_multi_subs_init() {
+  $apachesolr_environments = array();
+
+  // Check if we have the correct environment variables
+  if (isset($_SERVER['AH_SITE_ENVIRONMENT']) && isset($_SERVER['AH_SITE_NAME'])) {
+    $ah_site_environment = check_plain($_SERVER['AH_SITE_ENVIRONMENT']);
+    $ah_site_name = check_plain($_SERVER['AH_SITE_NAME']);
+
+    // Replace all weird characters that might appear in the sitegroup name or identifier
+    $ah_site_name = preg_replace('@[^a-zA-Z0-9_-]+@','_',$ah_site_name);
+
+    // Load our default environment and see if we should change it
+    $env_id = apachesolr_default_environment();
+    $environment = apachesolr_environment_load($env_id);
+
+    // Check if the environment we've loaded has Acquia Search and verify if it
+    // should be overridden
+    if (!empty($environment['conf']['acquia_search']) && !empty($environment['conf']['acquia_override_subscription_id']) && !empty($environment['conf']['acquia_override_auto_switch'])) {
+      $subscription_id = $environment['conf']['acquia_override_subscription_id'];
+
+      // Generate our expected core name according to Acquia Search
+      // conventions
+      if ($ah_site_environment == 'prod') {
+        $expected_core_name = $subscription_id;
+      }
+      else {
+        $expected_core_name = $subscription_id . '_' . $ah_site_name . $ah_site_environment;
+      }
+
+      // We know we have to switch automatically so we check if our core name
+      // that is currently set is correct. If not, we change it and rebuild
+      // our system.
+      if ($expected_core_name != $environment['conf']['acquia_override_subscription_corename']) {
+        // check if we have a core available that fits our needs
+        $search_cores = acquia_search_multi_subs_get_search_cores();
+        foreach ($search_cores as $search_core) {
+          if ($search_core['core_id'] == $expected_core_name) {
+
+            // Get the derived key salt from the subscription
+            $subscription = acquia_agent_settings('acquia_subscription_data');
+            $derived_key_salt = $subscription['derived_key_salt'];
+            // Get our subscription key
+            $key = $environment['conf']['acquia_override_subscription_key'];
+            // Create our derived key
+            $derived_key = _acquia_search_create_derived_key($derived_key_salt, $expected_core_name, $key);
+
+            // Set our variables in the subscription array
+            $apachesolr_environments[$env_id]['conf']['acquia_override_subscription_corename'] = $expected_core_name;
+            $apachesolr_environments[$env_id]['conf']['acquia_search_key'] = $derived_key;
+            $apachesolr_environments[$env_id]['conf']['acquia_override_selector'] = $expected_core_name;
+            // Generate the url where this core should connect to
+            $url = 'http://' . $search_core['balancer'] . variable_get('acquia_search_path', '/solr/'. $expected_core_name);
+            $apachesolr_environments[$env_id]['url'] = $url;
+            // Set our variable, needs two page loads to make sure it is in the 
+            // system. Setting the global conf variable is not valid as some
+            // calls to apachesolr_load_all_environments happen too early in
+            // the process. If we set the variable, we are sure it is there in
+            // the next page load. Also, setting this variable only happens when
+            // the environment changes and another environment which fits is
+            // found.
+            variable_set('apachesolr_environments', $apachesolr_environments);
+            drupal_static_reset('apachesolr_load_all_environments');
+            // Enough calculations, exit the foreach
+            break;
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Get all the available search cores if its been set in the subscription.
+ *
+ * @return array $search_cores
+ *   The search cores that are available according to the information in the
+ *   rpc backend.
+ */
+function acquia_search_multi_subs_get_search_cores() {
+  $search_cores = array();
+  $subscription = acquia_agent_settings('acquia_subscription_data');
+
+  // Get our search cores if they exist
+  if (isset($subscription['heartbeat_data']['search_cores'])) {
+    $search_cores = $subscription['heartbeat_data']['search_cores'];
+  }
+  return $search_cores;
 }
