@@ -56,25 +56,29 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       }
     }
 
-    // Add the ajax callback and wrapper
-    $form['acquia_override_subscription']['acquia_override_selector'] = array(
-       '#type' => 'select',
-       '#title' => t('Acquia Search Core'),
-       '#options' => $options,
-       '#default_value' => isset($environment['conf']['acquia_override_selector']) ? $environment['conf']['acquia_override_selector'] : '',
-       '#description' => t('Choose any of the available search cores or manually define one by choosing other.'),
-       '#ajax' => array(
-        'callback' => 'acquia_override_subscription_data',
-        'wrapper' => 'acquia-override-subscription-data-wrapper',
-       ),
-    );
-
     // Add a checkbox to auto switch per environment
     $form['acquia_override_subscription']['acquia_override_auto_switch'] = array(
       '#type' => 'checkbox',
       '#title' => 'Automatically switch when an Acquia Environment is detected',
       '#description' => t('Based on the detection of the AH_ENVIRONMENT header we can detect which environment you are currently using and switch the Acquia Search Core automatically if there is a corresponding core.'),
       '#default_value' => isset($environment['conf']['acquia_override_auto_switch']) ? $environment['conf']['acquia_override_auto_switch'] : '',
+    );
+    // Add the ajax callback and wrapper
+    $form['acquia_override_subscription']['acquia_override_selector'] = array(
+      '#type' => 'select',
+      '#title' => t('Acquia Search Core'),
+      '#options' => $options,
+      '#default_value' => isset($environment['conf']['acquia_override_selector']) ? $environment['conf']['acquia_override_selector'] : '',
+      '#description' => t('Choose any of the available search cores or manually define one by choosing other.'),
+      '#ajax' => array(
+        'callback' => 'acquia_override_subscription_data',
+        'wrapper' => 'acquia-override-subscription-data-wrapper',
+      ),
+      '#states' => array(
+        'invisible' => array(   // action to take.
+          ':input[name="acquia_override_auto_switch"]' => array('checked' => TRUE),
+        ),
+      ),
     );
 
     $acquia_identifier = variable_get('acquia_identifier');
@@ -100,6 +104,14 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       '#title' => t('Enter your Acquia Subscription Identifier'),
       '#description' => t('Prefilled with the identifier of the Acquia Connector. You can find your details in Acquia Insight.'),
       '#default_value' => $default_acquia_id,
+      '#states' => array(
+        'visible' => array(   // action to take.
+          ':input[name="acquia_override_selector"]' => array('value' => 'other'),
+        ),
+        'invisible' => array(   // action to take.
+          ':input[name="acquia_override_auto_switch"]' => array('checked' => TRUE),
+        ),
+      ),
     );
 
     $default_acquia_key = !empty($environment['conf']['acquia_override_subscription_key']) ? $environment['conf']['acquia_override_subscription_key'] : $acquia_key;
@@ -108,6 +120,14 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       '#title' => t('Enter your Acquia Subscription key'),
       '#description' => t('Prefilled with the key of the Acquia Connector. You can find your details in Acquia Insight.'),
       '#default_value' => $default_acquia_key,
+      '#states' => array(
+        'visible' => array(   // action to take.
+          ':input[name="acquia_override_selector"]' => array('value' => 'other'),
+        ),
+        'invisible' => array(   // action to take.
+          ':input[name="acquia_override_auto_switch"]' => array('checked' => TRUE),
+        ),
+      ),
     );
 
     // @Todo : Figure out why the heck it does not reload with the new default values...
@@ -117,11 +137,21 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       '#description' => t('Please enter the name of the Acquia Search core you want to connect to that belongs to the above identifier and key. In most cases you would want to use the dropdown list to get the correct value.'),
       '#title' => t('Enter your Acquia Search Core Name'),
       '#default_value' => $default_acquia_core_name,
+      '#states' => array(
+        'visible' => array(   // action to take.
+          ':input[name="acquia_override_selector"]' => array('value' => 'other'),
+        ),
+        'invisible' => array(   // action to take.
+          ':input[name="acquia_override_auto_switch"]' => array('checked' => TRUE),
+        ),
+      ),
     );
 
     // Make sure if we select a value from our dropdown list of cores, that they are not alterable as we need to use
     // #value because the #ajax property is silly.
-    if (isset($form_state['values']['acquia_override_selector']) && $form_state['values']['acquia_override_selector'] !== 'other') {
+    $not_other = (isset($environment['conf']['acquia_override_selector']) && $environment['conf']['acquia_override_selector'] !== 'other');
+    $ajax_not_other = (isset($form_state['values']['acquia_override_selector']) && $form_state['values']['acquia_override_selector'] !== 'other');
+    if ((!empty($form_state['values']) && $ajax_not_other) || empty($form_state['values']) && $not_other) {
       $form['acquia_override_subscription']['acquia_override_subscription_id']['#value'] = $acquia_identifier;
       $form['acquia_override_subscription']['acquia_override_subscription_id']['#disabled'] = true;
       $form['acquia_override_subscription']['acquia_override_subscription_key']['#value'] = $acquia_key;
