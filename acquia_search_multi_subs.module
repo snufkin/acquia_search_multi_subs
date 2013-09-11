@@ -45,12 +45,13 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       }
     }
 
+    // Check if we have the auto switch set
     $acquia_search_auto_switch = isset($environment['conf']['acquia_override_auto_switch']) ? $environment['conf']['acquia_override_auto_switch'] : TRUE;
     // Add a checkbox to auto switch per environment
     $form['acquia_override_subscription']['acquia_override_auto_switch'] = array(
       '#type' => 'checkbox',
       '#title' => 'Automatically switch when an Acquia Environment is detected',
-      '#description' => t('Based on the detection of the AH_ENVIRONMENT header we can detect which environment you are currently using and switch the Acquia Search Core automatically if there is a corresponding core.'),
+      '#description' => t('Based on the detection of the AH_SITE_NAME & AH_SITE_ENVIRONMENT header we can detect which environment you are currently using and switch the Acquia Search Core automatically if there is a corresponding core.'),
       '#default_value' => $acquia_search_auto_switch,
     );
 
