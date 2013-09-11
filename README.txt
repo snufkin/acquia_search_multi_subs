@@ -13,14 +13,14 @@ that you connected with using the Acquia Connector.
 
 If you want to test the switching locally add the following to your settings.php
 
-$_SERVER['AH_SITE_NAME'] = 'subscriptionnamedev';
-$_SERVER['AH_SITE_ENVIRONMENT'] = 'dev';
+$_ENV['AH_SITE_NAME'] = 'subscriptionnamedev';
+$_ENV['AH_SITE_ENVIRONMENT'] = 'dev';
 
 You can find this variable when you use your drush aliases to connect to your
 Acquia Server like this.
 
-dsm($_SERVER['AH_SITE_ENVIRONMENT']);
-dsm($_SERVER['AH_SITE_NAME']);
+dsm($_ENV['AH_SITE_ENVIRONMENT']);
+dsm($_ENV['AH_SITE_NAME']);
 
 Alternatively you could fill in data from another subscription so that it takes
 over your Acquia Search environment without disturbing the connection to the

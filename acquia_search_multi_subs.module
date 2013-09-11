@@ -45,6 +45,12 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
       }
     }
 
+    // Show a warning if there are not enough cores available to make the auto
+    // switch possible
+    if (count($options) <= 2) {
+      drupal_set_message('It seems you only have 1 Acquia Search index. To find out if you are eligible for a search core per environment it is recommended you open a support ticket with Acquia.', 'warning');
+    }
+
     // Check if we have the auto switch set
     $acquia_search_auto_switch = isset($environment['conf']['acquia_override_auto_switch']) ? $environment['conf']['acquia_override_auto_switch'] : TRUE;
     // Add a checkbox to auto switch per environment
@@ -294,9 +300,9 @@ function acquia_search_multi_subs_init() {
   $apachesolr_environments = array();
 
   // Check if we have the correct environment variables
-  if (isset($_SERVER['AH_SITE_ENVIRONMENT']) && isset($_SERVER['AH_SITE_NAME'])) {
-    $ah_site_environment = check_plain($_SERVER['AH_SITE_ENVIRONMENT']);
-    $ah_site_name = check_plain($_SERVER['AH_SITE_NAME']);
+  if (isset($_ENV['AH_SITE_ENVIRONMENT']) && isset($_ENV['AH_SITE_NAME'])) {
+    $ah_site_environment = check_plain($_ENV['AH_SITE_ENVIRONMENT']);
+    $ah_site_name = check_plain($_ENV['AH_SITE_NAME']);
 
     // Replace all weird characters that might appear in the sitegroup name or identifier
     $ah_site_name = preg_replace('@[^a-zA-Z0-9_-]+@','_',$ah_site_name);
