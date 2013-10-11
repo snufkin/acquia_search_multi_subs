@@ -3,4 +3,6 @@ description = "Acquia Search UI for configuring separate Acquia Subscriptions pe
 package = Acquia Network Connector
 core = 7.x
 
-dependencies[] = acquia_search
+dependencies[] = acquia_agent
+
+files[] = lib/Drupal/SearchApiSolr/SearchApiAcquiaSearchMultiService.php
