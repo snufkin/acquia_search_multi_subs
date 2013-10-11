@@ -52,6 +52,7 @@ function acquia_search_multi_subs_apachesolr_init() {
  */
 function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$form, $form_state) {
   if ($form['service_class']['#value'] == 'AcquiaSearchService') {
+
     // Gets environment from form, gets connection status to Acquia Search.
     $env_id = isset($form['env_id']['#default_value']) ? $form['env_id']['#default_value'] : '';
     $environment = ($env_id) ? apachesolr_environment_load($env_id) : FALSE;
@@ -61,8 +62,10 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(&$
     $defaults = array();
 
     $defaults['manual_input'] = (isset($form_state['values']['acquia_override_selector']) && $form_state['values']['acquia_override_selector'] == 'other');
+    // Get our common settings form
     acquia_search_multi_subs_get_settings_form($form, $form_state, $configuration, $defaults);
 
+    // add our new validation and submit handlers to the form.
     array_unshift($form['actions']['save']['#validate'], 'acquia_search_multi_subs_environment_edit_form_validate');
     array_unshift($form['actions']['save']['#submit'], 'acquia_search_multi_subs_environment_edit_form_submit');
     array_unshift($form['actions']['save_edit']['#validate'], 'acquia_search_multi_subs_environment_edit_form_validate');
@@ -106,63 +109,62 @@ function acquia_search_multi_subs_environment_edit_form_validate($form, &$form_s
  * @param type $form_state
  */
 function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_state) {
+  $fv = &$form_state['values'];
+
   // Only activate if the checkbox has been enabled and there is valid content
   // Add our overrides to the configuration
-  $override_values = array();
-  $override_values['env_id'] = $form['env_id']['#default_value'];
-  $override_values['name'] = $form_state['values']['name'];
-
-  if(!empty($form_state['values']['acquia_override_selector'])) {
+  if(!empty($fv['acquia_override_selector'])) {
     // Set the identifier and key
-    $identifier = $form_state['values']['acquia_override_subscription_id'];
-    $key = $form_state['values']['acquia_override_subscription_key'];
-    $corename = $form_state['values']['acquia_override_subscription_corename'];
+    $identifier = $fv['acquia_override_subscription_id'];
+    $key = $fv['acquia_override_subscription_key'];
+    $corename = $fv['acquia_override_subscription_corename'];
 
     // Add our acquia_connection check to this environment
-    $form_state['values']['conf']['acquia_override_auto_switch'] = $form_state['values']['acquia_override_auto_switch'];
-    $form_state['values']['conf']['acquia_override_selector'] = $form_state['values']['acquia_override_selector'];
+    $fv['conf']['acquia_override_auto_switch'] = $fv['acquia_override_auto_switch'];
+    $fv['conf']['acquia_override_selector'] = $fv['acquia_override_selector'];
 
     // Save that to our confs per environment, anything outside of conf is
     // ignored as extra value, so adding it to that array so it can be saved
-    $form_state['values']['conf']['acquia_override_subscription_id'] = $identifier;
-    $form_state['values']['conf']['acquia_override_subscription_key'] = $key;
-    $form_state['values']['conf']['acquia_override_subscription_corename'] = $corename;
+    $fv['conf']['acquia_override_subscription_id'] = $identifier;
+    $fv['conf']['acquia_override_subscription_key'] = $key;
+    $fv['conf']['acquia_override_subscription_corename'] = $corename;
 
     // Set the derived key for this environment
     $subscription = acquia_agent_get_subscription(array(), $identifier, $key);
     $derived_key_salt = $subscription['derived_key_salt'];
     $derived_key = _acquia_search_create_derived_key($derived_key_salt, $corename, $key);
-    $form_state['values']['conf']['acquia_search_key'] = $derived_key;
+    $fv['conf']['acquia_search_key'] = $derived_key;
 
+    $override_values = array();
+    $override_values['env_id'] = $form['env_id']['#default_value'];
+    $override_values['name'] = $fv['name'];
     $override_values['acquia_subscription_id'] = $identifier;
     $override_values['acquia_subscription_key'] = $key;
     $override_values['acquia_subscription_corename'] = $corename;
 
     // merge with our defaults
-    $form_state['values'] = array_merge($form_state['values'], acquia_search_get_environment($override_values));
+    $fv = array_merge($fv, acquia_search_get_environment($override_values));
 
-    // Override the URL
-    $search_host = variable_get('acquia_search_host', 'search.acquia.com');
-    if (!empty($subscription['heartbeat_data']['search_service_colony'])) {
-      $search_host = $subscription['heartbeat_data']['search_service_colony'];
-    }
-    $url = 'http://' . $search_host . variable_get('acquia_search_path', '/solr/'. $corename);
-    $form_state['values']['url'] = $url;
+    $search_host = acquia_search_multi_subs_get_hostname($corename);
+    $fv['url'] = 'http://' . $search_host . variable_get('acquia_search_path', '/solr/'. $corename);
 
-    if (empty($form_state['values']['conf']['acquia_override_auto_switch'])) {
+    if (empty($fv['conf']['acquia_override_auto_switch'])) {
+      // unset our apachesolr_environments variable. This overrides
+      // certain configurations and makes sure that we do not accidentially
+      // override the server configs if auto switch is set to disabled.
       variable_del('apachesolr_environments');
     }
   }
   else {
-    // Add our acquia_connection check to this environment
-    unset($form_state['values']['conf']['acquia_search_key']);
-    unset($form_state['values']['conf']['acquia_subscription_id']);
-    unset($form_state['values']['conf']['acquia_subscription_key']);
+    // Remove any manual configuration so we can auto-set the environment.
+    unset($fv['conf']['acquia_search_key']);
+    unset($fv['conf']['acquia_subscription_id']);
+    unset($fv['conf']['acquia_subscription_key']);
     apachesolr_environment_variable_del($override_values['env_id'], 'acquia_search_key');
     apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_id');
     apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_key');
     apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_corename');
-    $form_state['values'] = array_merge($form_state['values'], acquia_search_get_environment($override_values));
+    $fv = array_merge($fv, acquia_search_get_environment($override_values));
   }
 }
 
@@ -175,15 +177,14 @@ function acquia_search_multi_subs_environment_edit_form_submit($form, &$form_sta
  *   The environment that is being enabled by the Acquia Search module.
  */
 function acquia_search_multi_subs_acquia_search_enable_alter(&$environment) {
-  $corename = apachesolr_environment_variable_get($environment['env_id'], 'acquia_override_subscription_corename');
-  $id = apachesolr_environment_variable_get($environment['env_id'], 'acquia_override_subscription_id');
-  $key = apachesolr_environment_variable_get($environment['env_id'], 'acquia_override_subscription_key');
+  $env_id = $environment['env_id'];
+  $corename = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_corename');
+  $id = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_id');
+  $key = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_key');
 
   $subscription = acquia_agent_get_subscription($params = array(), $id, $key);
-  $search_host = variable_get('acquia_search_host', 'search.acquia.com');
-  if (!empty($subscription['heartbeat_data']['search_service_colony'])) {
-    $search_host = $subscription['heartbeat_data']['search_service_colony'];
-  }
+  // Override the URL
+  $search_host = acquia_search_multi_subs_get_hostname($corename);
   $url = 'http://' . $search_host . variable_get('acquia_search_path', '/solr/'. $corename);
   $environment['url'] = $url;
 }

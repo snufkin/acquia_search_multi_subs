@@ -27,12 +27,9 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
       $derived_key = _acquia_search_create_derived_key($derived_key_salt, $corename, $key);
       $this->options['derived_key'] = $derived_key;
 
-      $search_cores = acquia_search_multi_subs_get_search_cores();
-      foreach ($search_cores as $search_core) {
-        if ($corename == $search_core['core_id']) {
-          $this->options['host'] = $search_core['balancer'];
-        }
-      }
+      // Get and set our search core hostname
+      $search_host = acquia_search_multi_subs_get_hostname($corename);
+      $this->options['host'] = $search_host;
     }
 
   }
@@ -140,12 +137,8 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
       $derived_key = _acquia_search_create_derived_key($derived_key_salt, $corename, $key);
       $this->options['derived_key'] = $derived_key;
 
-      $search_cores = acquia_search_multi_subs_get_search_cores();
-      foreach ($search_cores as $search_core) {
-        if ($corename == $search_core['core_id']) {
-          $this->options['host'] = $search_core['balancer'];
-        }
-      }
+      $search_host = acquia_search_multi_subs_get_hostname($corename);
+      $this->options['host'] = $search_host;
     }
   }
 }

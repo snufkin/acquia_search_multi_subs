@@ -227,3 +227,16 @@ function acquia_override_subscription_data($form, &$form_state) {
   }
   return FALSE;
 }
+
+
+function acquia_search_multi_subs_get_hostname($corename) {
+  // Override the URL
+    $search_host = variable_get('acquia_search_host', 'search.acquia.com');
+    $search_cores = acquia_search_multi_subs_get_search_cores();
+    foreach ($search_cores as $search_core) {
+      if ($corename == $search_core['core_id']) {
+        $search_host = $search_core['balancer'];
+      }
+    }
+    return $search_host;
+}
