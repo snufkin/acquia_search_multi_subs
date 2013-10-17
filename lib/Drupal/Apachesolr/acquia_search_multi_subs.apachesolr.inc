@@ -27,9 +27,12 @@ function acquia_search_multi_subs_apachesolr_init() {
     // that is currently set is correct. If not, we change it and rebuild
     // our system.
     $environment_core_name = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_corename');
+    $environment_core_url = $environment['url'];
+    $expected_environment_core_host = acquia_search_multi_subs_get_hostname($environment_core_name);
+    $expected_environment_core_url = 'http://' . $expected_environment_core_host . '/solr/' . $expected_core_name;
 
     // if the core is already the same, don't do anything
-    if ($expected_core_name == $environment_core_name) {
+    if ($expected_core_name == $environment_core_name && $expected_environment_core_url == $environment_core_url) {
       continue;
     }
 

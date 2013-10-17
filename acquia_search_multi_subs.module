@@ -20,3 +20,14 @@ function acquia_search_multi_subs_init() {
     acquia_search_multi_subs_apachesolr_init();
   }
 }
+
+/**
+ * Implementation of hook_acquia_subscription_status().
+ *
+ * Needed to reinforce our override config setting
+ */
+function acquia_search_multi_subs_acquia_subscription_status($active, $subscription = FALSE) {
+  if ($active) {
+    acquia_search_multi_subs_init();
+  }
+}
