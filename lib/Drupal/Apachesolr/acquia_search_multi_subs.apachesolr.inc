@@ -216,6 +216,7 @@ function acquia_search_multi_subs_apachesolr_set_default_core($env_id, $search_c
 
   // Generate the url where this core should connect to
   $url = 'http://' . $search_core['balancer'] . variable_get('acquia_search_path', '/solr/'. $search_core['core_id']);
+  $apachesolr_environments = variable_get('apachesolr_environments', array());
   $apachesolr_environments[$env_id]['url'] = $url;
   // Set our variable, needs two page loads to make sure it is in the
   // system. Setting the global conf variable is not valid as some
