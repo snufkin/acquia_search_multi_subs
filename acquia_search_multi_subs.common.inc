@@ -240,3 +240,14 @@ function acquia_search_multi_subs_get_hostname($corename) {
     }
     return $search_host;
 }
+
+// As we rely on this function from acquia_search, we need to have it present
+if (!function_exists('_acquia_search_create_derived_key')) {
+  /**
+   * Derive a key for the solr hmac using a salt, id and key.
+   */
+  function _acquia_search_create_derived_key($salt, $id, $key) {
+    $derivation_string = $id . 'solr' . $salt;
+    return hash_hmac('sha1', str_pad($derivation_string, 80, $derivation_string), $key);
+  }
+}

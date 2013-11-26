@@ -6,16 +6,18 @@
  * Implements hook_uninstall().
  */
 function acquia_search_multi_subs_uninstall() {
-  variable_del('apachesolr_environments');
-  $environments = apachesolr_load_all_environments();
-  foreach ($environments as $environment) {
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_search');
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_search_key');
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_corename');
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_selector');
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_key');
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_id');
-    apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_auto_switch');
+  if (module_exists('apachesolr')) {
+    variable_del('apachesolr_environments');
+    $environments = apachesolr_load_all_environments();
+    foreach ($environments as $environment) {
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_search');
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_search_key');
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_corename');
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_selector');
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_key');
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_id');
+      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_auto_switch');
+    }
   }
 }
 
@@ -25,7 +27,7 @@ function acquia_search_multi_subs_uninstall() {
  *
  * Implements hook_disable().
  */
-function acquia_search_disable() {
+function acquia_search_multi_subs_disable() {
   // we want to also remove all config overrides when we disable it to avoid
   // confusion
   acquia_search_multi_subs_uninstall();
@@ -37,10 +39,12 @@ function acquia_search_disable() {
  * Implements hook_install().
  */
 function acquia_search_multi_subs_install() {
-  $environments = apachesolr_load_all_environments();
-  foreach ($environments as $environment) {
-    if ($environment['service_class'] == 'AcquiaSearchService') {
-      apachesolr_environment_variable_set($environment['env_id'], 'acquia_override_auto_switch', 1);
+  if (module_exists('apachesolr')) {
+    $environments = apachesolr_load_all_environments();
+    foreach ($environments as $environment) {
+      if ($environment['service_class'] == 'AcquiaSearchService') {
+        apachesolr_environment_variable_set($environment['env_id'], 'acquia_override_auto_switch', 1);
+      }
     }
   }
 }
