@@ -6,6 +6,16 @@
  */
 
 /**
+ * Implements hook_enable().
+ *
+ * Updates the subscription so that new Search Indexes connected to the user's
+ * subscription can be pulled in and selected to be connected to.
+ */
+function acquia_search_multi_subs_enable() {
+  acquia_agent_check_subscription();
+}
+
+/**
  * Implements hook_uninstall().
  *
  * Remove variables from any environment that would have this information
