@@ -96,23 +96,15 @@ function acquia_search_multi_subs_form_apachesolr_environment_edit_form_alter(ar
 function acquia_search_multi_subs_environment_edit_form_submit(array $form, array &$form_state) {
   $fv = &$form_state['values'];
 
+  $fv['conf'] = array_merge($fv['conf'], $fv['acquia_override_subscription']);
+
   // Only activate if the checkbox has been enabled and there is valid content.
   // Add our overrides to the configuration.
-  if(!empty($fv['acquia_override_selector'])) {
+  if(!empty($fv['conf']['acquia_override_selector']) && empty($fv['conf']['acquia_override_auto_switch'])) {
     // Set the identifier and key.
-    $identifier = $fv['acquia_override_subscription_id'];
-    $key = $fv['acquia_override_subscription_key'];
-    $corename = $fv['acquia_override_subscription_corename'];
-
-    // Add our acquia_connection check to this environment.
-    $fv['conf']['acquia_override_auto_switch'] = $fv['acquia_override_auto_switch'];
-    $fv['conf']['acquia_override_selector'] = $fv['acquia_override_selector'];
-
-    // Save that to our confs per environment, anything outside of conf is
-    // ignored as extra value, so adding it to that array so it can be saved.
-    $fv['conf']['acquia_override_subscription_id'] = $identifier;
-    $fv['conf']['acquia_override_subscription_key'] = $key;
-    $fv['conf']['acquia_override_subscription_corename'] = $corename;
+    $identifier = $fv['conf']['acquia_override_subscription_id'];
+    $key = $fv['conf']['acquia_override_subscription_key'];
+    $corename = $fv['conf']['acquia_override_subscription_corename'];
 
     // Set the derived key for this environment.
     $subscription = acquia_agent_get_subscription(array(), $identifier, $key);
@@ -145,11 +137,11 @@ function acquia_search_multi_subs_environment_edit_form_submit(array $form, arra
     unset($fv['conf']['acquia_search_key']);
     unset($fv['conf']['acquia_subscription_id']);
     unset($fv['conf']['acquia_subscription_key']);
-    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_search_key');
-    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_id');
-    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_key');
-    apachesolr_environment_variable_del($override_values['env_id'], 'acquia_override_subscription_corename');
-    $fv = array_merge($fv, acquia_search_get_environment($override_values));
+    apachesolr_environment_variable_del($fv['name'], 'acquia_search_key');
+    apachesolr_environment_variable_del($fv['name'], 'acquia_override_subscription_id');
+    apachesolr_environment_variable_del($fv['name'], 'acquia_override_subscription_key');
+    apachesolr_environment_variable_del($fv['name'], 'acquia_override_subscription_corename');
+    $fv = array_merge($fv, acquia_search_get_environment());
   }
 }
 
