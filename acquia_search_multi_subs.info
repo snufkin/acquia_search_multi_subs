@@ -1,5 +1,5 @@
 name = Acquia Search Multi Subscription
-description = "Acquia Search UI for configuring separate Acquia Subscriptions per Search Environment."
+description = "Acquia Search UI for connecting to other Acquia Search Indexes."
 package = Acquia Network Connector
 core = 7.x
 
