@@ -6,4 +6,3 @@ core = 7.x
 dependencies[] = acquia_agent
 
 files[] = lib/Drupal/SearchApiSolr/SearchApiAcquiaSearchMultiService.php
-
