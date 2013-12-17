@@ -141,7 +141,7 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
     drupal_set_message(t('It seems you only have 1 Acquia Search index. To find out if you are eligible for a search core per environment it is recommended you open a support ticket with Acquia.'), 'warning', FALSE);
   }
 
-  // Generate our custom form.
+  // Generate the custom form.
 
   $form['acquia_override_subscription']['acquia_override_subscription_id'] = array(
     '#type' => 'textfield',
