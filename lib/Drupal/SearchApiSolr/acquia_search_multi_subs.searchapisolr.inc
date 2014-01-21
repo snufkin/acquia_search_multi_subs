@@ -27,9 +27,9 @@ function acquia_search_multi_subs_searchapi_init() {
 
     // If automatic switching is enabled.
     if ($options['acquia_override_subscription']['acquia_override_auto_switch']) {
-       // Get the expected search core.
-      $expected_core_name = acquia_search_multi_subs_get_expected_search_core();
 
+       // Get the expected search core.
+      $expected_search_cores = acquia_search_multi_subs_get_expected_search_cores();
       // Load our possible search cores.
       $search_cores = acquia_search_multi_subs_get_search_cores();
 
@@ -38,29 +38,30 @@ function acquia_search_multi_subs_searchapi_init() {
       // our system.
       $environment_core_name = $options['acquia_override_subscription']['acquia_override_subscription_corename'];
 
-      // If the core is already the same, don't do anything.
-      if ($expected_core_name == $environment_core_name) {
-        continue;
-      }
-
-      // Loop over all the possible search cores to find the one with the right
-      // core_id.
-      foreach ($search_cores as $search_core) {
-        if ($search_core['core_id'] != $expected_core_name) {
+      foreach ($expected_search_cores as $expected_search_core) {
+        // If the core is already the same, don't do anything.
+        if ($expected_search_core == $environment_core_name) {
           continue;
         }
-        $server->options['acquia_override_subscription']['acquia_override_subscription_corename'] = $search_core['core_id'];
-        // Get the derived key salt from the subscription.
-        $subscription = acquia_agent_settings('acquia_subscription_data');
-        $derived_key_salt = $subscription['derived_key_salt'];
-        // Get the derived key salt from the subscription.
-        $key = acquia_agent_settings('acquia_key');
-        // Create our derived key.
-        $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $search_core['core_id'], $key);
-        $server->options['derived_key'] = $derived_key;
+        // Loop over all the possible search cores to find the one with the right
+        // core_id.
+        foreach ($search_cores as $search_core) {
+          if ($search_core['core_id'] != $expected_search_core) {
+            continue;
+          }
+          $server->options['acquia_override_subscription']['acquia_override_subscription_corename'] = $search_core['core_id'];
+          // Get the derived key salt from the subscription.
+          $subscription = acquia_agent_settings('acquia_subscription_data');
+          $derived_key_salt = $subscription['derived_key_salt'];
+          // Get the derived key salt from the subscription.
+          $key = acquia_agent_settings('acquia_key');
+          // Create our derived key.
+          $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $search_core['core_id'], $key);
+          $server->options['derived_key'] = $derived_key;
 
-        $server->save();
-        break;
+          $server->save();
+          break;
+        }
       }
     }
   }

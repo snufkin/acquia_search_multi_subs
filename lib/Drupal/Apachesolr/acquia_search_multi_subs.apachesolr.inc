@@ -34,7 +34,7 @@ function acquia_search_multi_subs_apachesolr_init() {
     }
 
     // Get the expected search core.
-    $expected_core_name = acquia_search_multi_subs_get_expected_search_core();
+    $expected_search_cores = acquia_search_multi_subs_get_expected_search_cores();
     // Load our possible search cores.
     $search_cores = acquia_search_multi_subs_get_search_cores();
     // We know we have to switch automatically so we check if our core name
@@ -43,17 +43,19 @@ function acquia_search_multi_subs_apachesolr_init() {
     $environment_core_name = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_corename');
     $environment_core_url = $environment['url'];
     $expected_environment_core_host = acquia_search_multi_subs_get_hostname($environment_core_name);
-    $expected_environment_core_url = 'http://' . $expected_environment_core_host . '/solr/' . $expected_core_name;
 
-    // If the core is already the same, don't do anything.
-    if ($expected_core_name == $environment_core_name && $expected_environment_core_url == $environment_core_url) {
-      continue;
-    }
-
-    // Loop over all the possible search cores.
-    foreach ($search_cores as $search_core) {
-      if ($search_core['core_id'] == $expected_core_name) {
-        acquia_search_multi_subs_apachesolr_set_default_core($env_id, $search_core);
+    foreach ($expected_search_cores as $expected_search_core) {
+      $expected_environment_core_url = 'http://' . $expected_environment_core_host . '/solr/' . $expected_search_core;
+      // If the core is already the same, don't do anything.
+      if ($expected_search_core == $environment_core_name && $expected_environment_core_url == $environment_core_url) {
+        continue;
+      }
+      // Loop over all the possible search cores.
+      foreach ($search_cores as $search_core) {
+        if ($search_core['core_id'] == $expected_search_core) {
+          acquia_search_multi_subs_apachesolr_set_default_core($env_id, $search_core);
+          break;
+        }
       }
     }
   }

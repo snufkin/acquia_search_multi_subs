@@ -11,47 +11,44 @@
  * @return string
  *   The expected core's core_id.
  */
-function acquia_search_multi_subs_get_expected_search_core() {
+function acquia_search_multi_subs_get_expected_search_cores() {
+  $expected_core_names = array();
+  $subscription_id = acquia_agent_settings('acquia_identifier');
+
   // Check if we have the correct environment variables.
-  if (isset($_ENV['AH_SITE_ENVIRONMENT'])) {
+  if (isset($_ENV['AH_SITE_ENVIRONMENT']) && isset($_ENV['AH_SITE_NAME'])) {
     $ah_site_environment = $_ENV['AH_SITE_ENVIRONMENT'];
+    $ah_site_name = $_ENV['AH_SITE_NAME'];
   }
   else {
     // Default to dev.
     $ah_site_environment = 'dev';
+    $ah_site_name = NULL;
   }
-  // Load our possible search cores.
-  $search_cores = acquia_search_multi_subs_get_search_cores();
 
-  // Set the default core to production if all else fails.
-  $subscription_id = acquia_agent_settings('acquia_identifier');
-  $expected_core_name = $subscription_id;
+  // We have two possible conventions to follow.
+  // SEARCH-INDEX.siteenv.default
+  // SEARCH-INDEX_sitenamesiteenv
+  // The code also prioritizes them in that order.
 
-  // Without a sitegroup value we can't do much.
-  if (!isset($_ENV['AH_SITE_NAME'])) {
-    // We did not find a sitename, so we default to a dev search core if one is
-    // present.
-    foreach ($search_cores as $search_core) {
-      if (strstr($search_core['core_id'], 'dev')) {
-        $expected_core_name = $search_core['core_id'];
-        break;
-      }
+  // Generate our expected core name according to Acquia Search
+  // conventions. Priority are those with SEARCH-INDEX.siteenv.default
+  if ($ah_site_environment != 'prod') {
+    // Reset the array, as we are not in prod
+    $expected_core_names = array();
+    $expected_core_names[] = $subscription_id . '.' . $ah_site_environment . '.default';
+    if (!empty($ah_site_name)) {
+      // Replace all weird characters that might appear in the sitegroup name or
+      // identifier.
+      $ah_site_name = preg_replace('@[^a-zA-Z0-9_-]+@', '_', $ah_site_name);
+      $expected_core_names[] = $subscription_id . '_' . $ah_site_name;
     }
   }
   else {
-    // In all other cases, we see if we can find a core to default to.
-    $ah_site_name = $_ENV['AH_SITE_NAME'];
-    // Replace all weird characters that might appear in the sitegroup name or
-    // identifier.
-    $ah_site_name = preg_replace('@[^a-zA-Z0-9_-]+@','_',$ah_site_name);
-
-    // Generate our expected core name according to Acquia Search
-    // conventions.
-    if ($ah_site_environment != 'prod') {
-      $expected_core_name = $subscription_id . '_' . $ah_site_name;
-    }
+    // Set the default core to production if the environment is prod
+    $expected_core_names[] = $subscription_id;
   }
-  return $expected_core_name;
+  return $expected_core_names;
 }
 
 /**
@@ -206,17 +203,17 @@ function acquia_search_multi_subs_default_configuration() {
  */
 function acquia_search_multi_subs_form_validate(array $element, &$form_state) {
   // Get the correct values array.
-  $form_values = &$form_state['values'];
+  $form_values = $form_state['values'];
   foreach ($element['#parents'] as $key) {
-    $form_values = &$form_values[$key];
+    $form_values = $form_values[$key];
   }
 
   // Don't check the settings further if we are set to "auto" mode.
   if ($form_values['acquia_override_auto_switch']) {
     // Already set the correct ID and key, though, since those won't change.
     // Only the core name is adapted automatically.
-    $form_values['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');
-    $form_values['acquia_override_subscription_key'] = acquia_agent_settings('acquia_key');
+    $form_state['values']['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');
+    $form_state['values']['acquia_override_subscription_key'] = acquia_agent_settings('acquia_key');
     return;
   }
 
@@ -229,13 +226,13 @@ function acquia_search_multi_subs_form_validate(array $element, &$form_state) {
       form_error($element['acquia_override_subscription_key'], t('You must at least fill in a valid Acquia Subscription key.'));
     }
     if ($form_values['acquia_override_subscription_corename'] == '') {
-      $form_values['acquia_override_subscription_corename'] = $form_values['acquia_override_subscription_id'];
+      $form_state['values']['acquia_override_subscription_corename'] = $form_values['acquia_override_subscription_id'];
     }
   }
   else {
-    $form_values['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');
-    $form_values['acquia_override_subscription_key'] = acquia_agent_settings('acquia_key');
-    $form_values['acquia_override_subscription_corename'] = $form_values['acquia_override_selector'];
+    $form_state['values']['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');
+    $form_state['values']['acquia_override_subscription_key'] = acquia_agent_settings('acquia_key');
+    $form_state['values']['acquia_override_subscription_corename'] = $form_values['acquia_override_selector'];
   }
 
   // Set the identifier and key.
