@@ -135,7 +135,9 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
   // Show a warning if there are not enough cores available to make the auto
   // switch possible.
   if (count($options) <= 2) {
-    drupal_set_message(t('It seems you only have 1 Acquia Search index. To find out if you are eligible for a search core per environment it is recommended you open a support ticket with Acquia.'), 'warning', FALSE);
+    $t_args = array('!refresh' => l(t('refresh'), 'admin/config/system/acquia-search-multi-subs/refresh-status', array('query' => array( 'destination' => current_path()))));
+    drupal_set_message(t('It seems you only have 1 Acquia Search index. To find out if you are eligible for a search core per environment it is recommended you open a support ticket with Acquia. Once you have that settled, !refresh your subscription so it pulls in the latest information to connect to your indexes.', $t_args), 'warning', FALSE);
+
   }
 
   // Generate the custom form.
