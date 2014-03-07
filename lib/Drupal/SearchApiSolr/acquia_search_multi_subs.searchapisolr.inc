@@ -17,54 +17,83 @@
  * @see acquia_search_multi_subs_init()
  */
 function acquia_search_multi_subs_searchapi_init() {
+  // Get information from environment.
+  $acquia_identifier = acquia_agent_settings('acquia_identifier');
+  $ah_site_environment = isset($_ENV['AH_SITE_ENVIRONMENT']) ? $_ENV['AH_SITE_ENVIRONMENT'] : '';
+  $ah_site_name = isset($_ENV['AH_SITE_NAME']) ? $_ENV['AH_SITE_NAME'] : '';
+  $sites_foldername = substr(conf_path(), strrpos(conf_path(), '/') + 1);
+  $subscription_expected_search_cores = acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, $ah_site_environment, $ah_site_name, $sites_foldername);
+  // Get the search cores available in the subscription.
+  $available_search_cores = acquia_search_multi_subs_get_search_cores();
+
+  // Load the Search API servers to check. Only load servers using the
+  // acquia_search_service class.
   $servers = search_api_server_load_multiple(FALSE, array('class' => 'acquia_search_service'));
-  // Loop over all Search API servers to look for the one we want to change.
   foreach ($servers as $server) {
     // Load defaults.
     $options = $server->options;
     $options += array('acquia_override_subscription' => array());
     $options['acquia_override_subscription'] += acquia_search_multi_subs_default_configuration();
 
-    // If automatic switching is enabled.
-    if ($options['acquia_override_subscription']['acquia_override_auto_switch']) {
+    $environment_core_name = $options['acquia_override_subscription']['acquia_override_subscription_corename'];
+    $acquia_override_auto_switch = $options['acquia_override_subscription']['acquia_override_auto_switch'];
+    $acquia_override_selector = $options['acquia_override_subscription']['acquia_override_selector'];
+    // If auto switch is enabled, search thru all the subscription's search cores
+    // to find best match.
+    if ($acquia_override_auto_switch) {
+      $expected_core_names = $subscription_expected_search_cores;
+    }
+    else {
+      // If auto switch is disabled, only try to match the specified core.
+      if ($acquia_override_selector == 'other') {
+        $expected_core_names = array($environment_core_name);
+      }
+      else {
+        $expected_core_names = array($acquia_override_selector);
+      }
+    }
 
-       // Get the expected search core.
-      $expected_search_cores = acquia_search_multi_subs_get_expected_search_cores();
-      // Load our possible search cores.
-      $search_cores = acquia_search_multi_subs_get_search_cores();
-
-      // We know we have to switch automatically so we check if our core name
-      // that is currently set is correct. If not, we change it and rebuild
-      // our system.
-      $environment_core_name = $options['acquia_override_subscription']['acquia_override_subscription_corename'];
-
-      foreach ($expected_search_cores as $expected_search_core) {
-        // If the core is already the same, don't do anything.
-        if ($expected_search_core == $environment_core_name) {
-          continue;
-        }
-        // Loop over all the possible search cores to find the one with the right
-        // core_id.
-        foreach ($search_cores as $search_core) {
-          if ($search_core['core_id'] != $expected_search_core) {
-            continue;
+    $match_found = false;
+    foreach ($expected_core_names as $expected_core_name) {
+      // This allows us to break from the 2-level deep foreach.
+      if ($match_found) {
+        break;
+      }
+      // Loop over all the available search cores.
+      foreach ($available_search_cores as $available_search_core) {
+        if ($available_search_core['core_id'] == $expected_core_name) {
+          // If the core is already the same, don't do anything.
+          if ($available_search_core['core_id'] != $environment_core_name) {
+            acquia_search_multi_subs_searchapi_set_default_core($server, $available_search_core);
+            watchdog('acquia_search_multi_subs', 'Switched Search API solr server "@server_name" from core @old_core_id to @new_core_id', array('@server_name' => $server->name, '@old_core_id' => $environment_core_name, '@new_core_id' => $available_search_core['core_id']), WATCHDOG_NOTICE);
           }
-          $server->options['acquia_override_subscription']['acquia_override_subscription_corename'] = $search_core['core_id'];
-          // Get the derived key salt from the subscription.
-          $subscription = acquia_agent_settings('acquia_subscription_data');
-          $derived_key_salt = $subscription['derived_key_salt'];
-          // Get the derived key salt from the subscription.
-          $key = acquia_agent_settings('acquia_key');
-          // Create our derived key.
-          $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $search_core['core_id'], $key);
-          $server->options['derived_key'] = $derived_key;
-
-          $server->save();
+          $match_found = true;
           break;
         }
       }
     }
   }
+}
+
+/**
+ * Sets our default search core for the acquia index.
+ *
+ * @param SearchApiServer $server
+ *   Search API Server object we are modifying.
+ * @param $search_core
+ *   The search core data array from the connector subscription data.
+ */
+function acquia_search_multi_subs_searchapi_set_default_core(SearchApiServer &$server, $search_core) {
+  $server->options['acquia_override_subscription']['acquia_override_subscription_corename'] = $search_core['core_id'];
+  // Get the derived key salt from the subscription.
+  $subscription = acquia_agent_settings('acquia_subscription_data');
+  $derived_key_salt = $subscription['derived_key_salt'];
+  // Get the derived key salt from the subscription.
+  $key = acquia_agent_settings('acquia_key');
+  // Create our derived key.
+  $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $search_core['core_id'], $key);
+  $server->options['derived_key'] = $derived_key;
+  $server->save();
 }
 
 /**

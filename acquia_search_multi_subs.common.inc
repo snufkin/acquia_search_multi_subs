@@ -6,49 +6,66 @@
  */
 
 /**
- * Calculates our expected search core name based on environment information.
+ * Calculates eligible search core names based on environment information,
+ * in order of most likely (or preferred!) core names first.
  *
- * @return string
- *   The expected core's core_id.
+ * The generated list of expected core names is done according to Acquia Search
+ * conventions, prioritized in this order:
+ * WXYZ-12345.[env].[sitefolder]
+ * WXYZ-12345.[env].default
+ * WXYZ-12345_[sitename][env]
+ * WXYZ-12345.dev.[sitefolder] (only if $ah_site_environment isn't 'prod')
+ * WXYZ-12345_[sitename]dev    (only if $ah_site_environment isn't 'prod')
+ * WXYZ-12345                  (only if $ah_site_environment is 'prod')
+ *
+ * @param string $acquia_identifier
+ *   Subscription ID. E.g. WXYZ-12345
+ * @param string $ah_site_environment
+ *   String with the environment, from $_ENV[AH_SITE_ENVIRONMENT].
+ *   E.g. 'dev', 'test', 'prod'.
+ * @param string $ah_site_name
+ *   From $_ENV[AH_SITE_NAME]
+ * @param string $sites_foldername
+ *   Optional. The current site folder within [docroot]/sites/*.
+ *   @see conf_path()
+ * @return array
+ *   The eligible core_ids sorted by best match first.
  */
-function acquia_search_multi_subs_get_expected_search_cores() {
-  $expected_core_names = array();
-  $subscription_id = acquia_agent_settings('acquia_identifier');
-
-  // Check if we have the correct environment variables.
-  if (isset($_ENV['AH_SITE_ENVIRONMENT']) && isset($_ENV['AH_SITE_NAME'])) {
-    $ah_site_environment = $_ENV['AH_SITE_ENVIRONMENT'];
-    $ah_site_name = $_ENV['AH_SITE_NAME'];
+function acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, $ah_site_environment, $ah_site_name, $sites_foldername = 'default') {
+  // Build eligible environments array.
+  $ah_environments = array();
+  // If we have the proper environment, add it as the first option.
+  if ($ah_site_environment) {
+    $ah_environments[$ah_site_environment] = $ah_site_name;
   }
-  else {
-    // Default to dev.
-    $ah_site_environment = 'dev';
-    $ah_site_name = NULL;
-  }
-
-  // We have two possible conventions to follow.
-  // SEARCH-INDEX.siteenv.default
-  // SEARCH-INDEX_sitenamesiteenv
-  // The code also prioritizes them in that order.
-
-  // Generate our expected core name according to Acquia Search
-  // conventions. Priority are those with SEARCH-INDEX.siteenv.default
+  // Add fallback options. For sites that lack the AH_* variables or are non-prod
+  // we will try to match .dev.[sitefolder] cores.
   if ($ah_site_environment != 'prod') {
-    // Reset the array, as we are not in prod
-    $expected_core_names = array();
-    $expected_core_names[] = $subscription_id . '.' . $ah_site_environment . '.default';
-    if (!empty($ah_site_name)) {
-      // Replace all weird characters that might appear in the sitegroup name or
-      // identifier.
-      $ah_site_name = preg_replace('@[^a-zA-Z0-9_-]+@', '_', $ah_site_name);
-      $expected_core_names[] = $subscription_id . '_' . $ah_site_name;
+    $ah_environments['dev'] = $ah_site_name;
+  }
+
+  $expected_core_names = array();
+  foreach ($ah_environments as $site_environment => $site_name) {
+    // The possible core name suffixes are [current site folder name] and 'default'.
+    $core_suffixes = array_unique(array($sites_foldername, 'default'));
+    foreach ($core_suffixes as $core_suffix) {
+      // Add WXYZ-12345.[env].[sitefolder] option.
+      $expected_core_names[] = $acquia_identifier . '.' . $site_environment . '.' . $core_suffix;
+      // Add WXYZ-12345_[sitename][env] option.
+      if (!empty($site_name) && $sites_foldername == 'default') {
+        // Replace any weird characters that might appear in the sitegroup name or
+        // identifier.
+        $site_name = preg_replace('@[^a-zA-Z0-9_-]+@', '_', $site_name);
+        $expected_core_names[] = $acquia_identifier . '_' . $site_name;
+      }
     }
   }
-  else {
-    // Set the default core to production if the environment is prod
-    $expected_core_names[] = $subscription_id;
+  // Add suffix-less core if we're on prod now.
+  if ($ah_site_environment == 'prod') {
+    $expected_core_names[] = $acquia_identifier;
   }
-  return $expected_core_names;
+
+  return array_unique($expected_core_names);
 }
 
 /**

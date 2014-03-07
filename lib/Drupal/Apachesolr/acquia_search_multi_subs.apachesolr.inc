@@ -17,43 +17,62 @@
  * @see acquia_search_multi_subs_init()
  */
 function acquia_search_multi_subs_apachesolr_init() {
-  // Load our default environment and see if we should change it.
-  $environments = apachesolr_load_all_environments();
+  // Get information from environment.
+  $acquia_identifier = acquia_agent_settings('acquia_identifier');
+  $ah_site_environment = isset($_ENV['AH_SITE_ENVIRONMENT']) ? $_ENV['AH_SITE_ENVIRONMENT'] : '';
+  $ah_site_name = isset($_ENV['AH_SITE_NAME']) ? $_ENV['AH_SITE_NAME'] : '';
+  $sites_foldername = substr(conf_path(), strrpos(conf_path(), '/') + 1);
+  $subscription_expected_search_cores = acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, $ah_site_environment, $ah_site_name, $sites_foldername);
+  // Get the search cores available in the subscription.
+  $available_search_cores = acquia_search_multi_subs_get_search_cores();
 
+  // Load the Apache Solr Search Integration environments to check.
+  $environments = apachesolr_load_all_environments();
   foreach ($environments as $environment) {
-    // Only alter Acquia Search environments.
+    // Skip non-Acquia Search environments.
     if ($environment['service_class'] != 'AcquiaSearchService') {
       continue;
     }
     $env_id = $environment['env_id'];
-    $has_auto_switch = apachesolr_environment_variable_get($env_id, 'acquia_override_auto_switch', TRUE);
 
-    // If auto switch is not enabled, go to the next environment.
-    if (!$has_auto_switch) {
-      continue;
-    }
-
-    // Get the expected search core.
-    $expected_search_cores = acquia_search_multi_subs_get_expected_search_cores();
-    // Load our possible search cores.
-    $search_cores = acquia_search_multi_subs_get_search_cores();
-    // We know we have to switch automatically so we check if our core name
-    // that is currently set is correct. If not, we change it and rebuild
-    // our system.
     $environment_core_name = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_corename');
     $environment_core_url = $environment['url'];
-    $expected_environment_core_host = acquia_search_multi_subs_get_hostname($environment_core_name);
-
-    foreach ($expected_search_cores as $expected_search_core) {
-      $expected_environment_core_url = 'http://' . $expected_environment_core_host . '/solr/' . $expected_search_core;
-      // If the core is already the same, don't do anything.
-      if ($expected_search_core == $environment_core_name && $expected_environment_core_url == $environment_core_url) {
-        continue;
+    $expected_core_host = acquia_search_multi_subs_get_hostname($environment_core_name);
+    $acquia_override_auto_switch = apachesolr_environment_variable_get($env_id, 'acquia_override_auto_switch', TRUE);
+    $acquia_override_selector = apachesolr_environment_variable_get($env_id, 'acquia_override_selector');
+    // If auto switch is enabled, search thru all the subscription's search cores
+    // to find best match.
+    if ($acquia_override_auto_switch) {
+      $expected_core_names = $subscription_expected_search_cores;
+    }
+    else {
+      // If auto switch is disabled, only try to match the specified core.
+      if ($acquia_override_selector == 'other') {
+        $expected_core_names = array($environment_core_name);
       }
-      // Loop over all the possible search cores.
-      foreach ($search_cores as $search_core) {
-        if ($search_core['core_id'] == $expected_search_core) {
-          acquia_search_multi_subs_apachesolr_set_default_core($env_id, $search_core);
+      else {
+        $expected_core_names = array($acquia_override_selector);
+      }
+    }
+
+    $match_found = false;
+    foreach ($expected_core_names as $expected_core_name) {
+      // This allows us to break from the 2-level deep foreach.
+      if ($match_found) {
+        break;
+      }
+      // Note it's OK to use http:// on the following since it will be replaced
+      // later with https:// if needed.
+      $expected_environment_core_url = 'http://' . $expected_core_host . '/solr/' . $expected_core_name;
+      // Loop over all the available search cores.
+      foreach ($available_search_cores as $available_search_core) {
+        if ($available_search_core['core_id'] == $expected_core_name) {
+          // If the core is already the same, don't do anything.
+          if ($expected_environment_core_url != $environment_core_url) {
+            acquia_search_multi_subs_apachesolr_set_default_core($env_id, $available_search_core);
+            watchdog('acquia_search_multi_subs', 'Switched Apache Solr environment "@env_id" from core @old_core_id to @new_core_id', array('@env_id' => $env_id, '@old_core_id' => $environment_core_url, '@new_core_id' => $expected_environment_core_url), WATCHDOG_NOTICE);
+          }
+          $match_found = true;
           break;
         }
       }
