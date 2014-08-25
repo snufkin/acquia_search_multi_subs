@@ -239,6 +239,7 @@ function acquia_search_multi_subs_default_configuration() {
   return array(
     'acquia_override_auto_switch' => TRUE,
     'acquia_override_selector' => '',
+    'acquia_override_failover' => FALSE,
     'acquia_override_subscription_id' => acquia_agent_settings('acquia_identifier'),
     'acquia_override_subscription_key' => acquia_agent_settings('acquia_key'),
     'acquia_override_subscription_corename' => '',
