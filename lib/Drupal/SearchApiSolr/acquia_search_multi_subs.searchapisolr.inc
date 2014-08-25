@@ -40,7 +40,7 @@ function acquia_search_multi_subs_searchapi_init() {
     $environment_core_name = $options['acquia_override_subscription']['acquia_override_subscription_corename'];
     $acquia_override_auto_switch = $options['acquia_override_subscription']['acquia_override_auto_switch'];
     $acquia_override_selector = $options['acquia_override_subscription']['acquia_override_selector'];
-    $acquia_override_failover = apachesolr_environment_variable_get($env_id, 'acquia_override_failover', FALSE);
+    $acquia_override_failover = $options['acquia_override_subscription']['acquia_override_failover'];
 
     // If auto switch is enabled, search thru all the subscription's search cores
     // to find best match.
