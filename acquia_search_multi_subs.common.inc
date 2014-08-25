@@ -59,6 +59,8 @@ function acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, 
         $expected_core_names[] = $acquia_identifier . '_' . $site_name;
       }
     }
+    // Add our failover options
+    $expected_core_names[] = $acquia_identifier . '.' . $site_environment . '.failover';
   }
   // Add suffix-less core if we're on prod now.
   if ($ah_site_environment == 'prod') {
@@ -132,9 +134,17 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
   // Add a form element to make it easier to choose from multiple cores.
   $options = array('other' => t('Other'));
   $search_cores = acquia_search_multi_subs_get_search_cores();
+  $failover_exists = NULL;
+  $failover_region = NULL;
   if (is_array($search_cores)) {
     foreach ($search_cores as $search_core) {
       $options[$search_core['core_id']] = $search_core['core_id'];
+      if (strstr($search_core['core_id'], '.failover')) {
+        $failover_exists = TRUE;
+        $matches = array();
+        preg_match("/^([^-]*)/", $search_core['balancer'], $matches);
+        $failover_region = reset($matches);
+      }
     }
   }
   $form['acquia_override_subscription']['acquia_override_selector'] = array(
@@ -149,16 +159,15 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
       ),
     ),
   );
+
   // Show a warning if there are not enough cores available to make the auto
   // switch possible.
   if (count($options) <= 2) {
     $t_args = array('!refresh' => l(t('refresh'), 'admin/config/system/acquia-search-multi-subs/refresh-status', array('query' => array( 'destination' => current_path()))));
     drupal_set_message(t('It seems you only have 1 Acquia Search index. To find out if you are eligible for a search core per environment it is recommended you open a support ticket with Acquia. Once you have that settled, !refresh your subscription so it pulls in the latest information to connect to your indexes.', $t_args), 'warning', FALSE);
-
   }
 
   // Generate the custom form.
-
   $form['acquia_override_subscription']['acquia_override_subscription_id'] = array(
     '#type' => 'textfield',
     '#title' => t('Enter your Acquia Subscription Identifier'),
@@ -197,6 +206,27 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
       ),
     ),
   );
+
+  // Check if we have MR cores.
+  if ($failover_exists) {
+    // Add a checkbox to auto switch to the failover variant in a defined region.
+    $t_args = array(
+      '%region' => $failover_region,
+      '@import' => url('https://github.com/acquia/acquia-search-service-import'),
+      '@export' => url('https://github.com/acquia/acquia-search-service-import'),
+    );
+    $form['acquia_override_subscription']['acquia_override_failover'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enable multi-region failover support.'),
+      '#description' => t('If the Drupal site is hosted in %region it will fail over to the fail-over index. You still need to use the Acquia Search Service <a href="@export">Export</a> and <a href="@import">Import</a> tools to sync your Acquia Search index between the two.', $t_args),
+      '#default_value' => $configuration['acquia_override_failover'],
+      '#states' => array(
+        'visible' => array(
+          ':input[name*="acquia_override_auto_switch"]' => array('checked' => TRUE),
+        ),
+      ),
+    );
+  }
 }
 
 /**
@@ -212,6 +242,7 @@ function acquia_search_multi_subs_default_configuration() {
     'acquia_override_subscription_id' => acquia_agent_settings('acquia_identifier'),
     'acquia_override_subscription_key' => acquia_agent_settings('acquia_key'),
     'acquia_override_subscription_corename' => '',
+    'acquia_search_multi_subs_get_settings_form' => FALSE
   );
 }
 
