@@ -132,7 +132,7 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
   );
 
   // Add a form element to make it easier to choose from multiple cores.
-  $options = array('other' => t('Other'));
+  $options = array('default' => t('Default'), 'other' => t('Other'));
   $search_cores = acquia_search_multi_subs_get_search_cores();
   $failover_exists = NULL;
   $failover_region = NULL;
@@ -152,7 +152,7 @@ function acquia_search_multi_subs_get_settings_form(array &$form, array &$form_s
     '#title' => t('Acquia Search Core'),
     '#options' => $options,
     '#default_value' => $configuration['acquia_override_selector'],
-    '#description' => t('Choose any of the available search cores or manually define one by choosing "other".'),
+    '#description' => t('Choose any of the available search cores or manually define one by choosing "other". To use the default settings, select default.'),
     '#states' => array(
       'visible' => array(
         ':input[name*="acquia_override_auto_switch"]' => array('checked' => FALSE),
@@ -243,7 +243,7 @@ function acquia_search_multi_subs_default_configuration() {
     'acquia_override_subscription_id' => acquia_agent_settings('acquia_identifier'),
     'acquia_override_subscription_key' => acquia_agent_settings('acquia_key'),
     'acquia_override_subscription_corename' => '',
-    'acquia_search_multi_subs_get_settings_form' => FALSE
+    'acquia_search_multi_subs_get_settings_form' => FALSE,
   );
 }
 
@@ -260,12 +260,17 @@ function acquia_search_multi_subs_form_validate(array $element, &$form_state) {
   }
 
   // Don't check the settings further if we are set to "auto" mode.
-  if ($form_values['acquia_override_auto_switch']) {
+  if (!empty($form_values['acquia_override_auto_switch'])) {
     // Already set the correct ID and key, though, since those won't change.
     // Only the core name is adapted automatically.
     $form_state['values']['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');
     $form_state['values']['acquia_override_subscription_key'] = acquia_agent_settings('acquia_key');
     return;
+  }
+  else {
+    // If we do not auto switch, we also do not auto fail-over to other regions.
+    unset($form_state['values']['acquia_override_failover']);
+    $form_state['values']['options']['form']['acquia_override_subscription']['acquia_override_failover'] = 0;
   }
 
   // If the selector is set to a core (not "other"), insert the proper settings.
@@ -279,6 +284,13 @@ function acquia_search_multi_subs_form_validate(array $element, &$form_state) {
     if ($form_values['acquia_override_subscription_corename'] == '') {
       $form_state['values']['acquia_override_subscription_corename'] = $form_values['acquia_override_subscription_id'];
     }
+  }
+  elseif ($form_values['acquia_override_selector'] == 'default') {
+    // Delete all possible index variables from the Acquia Multi Subs module, since
+    // we revert to default for this Search Environment
+    $form_state['values']['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');
+    $form_state['values']['acquia_override_subscription_key'] = acquia_agent_settings('acquia_key');
+    $form_state['values']['acquia_override_subscription_corename'] = acquia_agent_settings('acquia_identifier');
   }
   else {
     $form_state['values']['acquia_override_subscription_id'] = acquia_agent_settings('acquia_identifier');

@@ -54,6 +54,9 @@ function acquia_search_multi_subs_apachesolr_init() {
       if ($acquia_override_selector == 'other') {
         $expected_core_names = array($environment_core_name);
       }
+      elseif ($acquia_override_selector == 'default') {
+        $expected_core_names = array(acquia_agent_settings('acquia_identifier'));
+      }
       else {
         $expected_core_names = array($acquia_override_selector);
       }
@@ -68,6 +71,14 @@ function acquia_search_multi_subs_apachesolr_init() {
         $search_core_region = reset($matches);
         if ($search_core_region != $expected_search_core_region) {
           unset($available_search_cores[$core_id]);
+        }
+      }
+    }
+    else {
+      // if not enabled, remove all failover indexes from being a possible candidate
+      foreach ($subscription_expected_search_cores as $search_core_id => $search_core) {
+        if (strstr($search_core, 'failover')) {
+          unset($subscription_expected_search_cores[$search_core_id]);
         }
       }
     }

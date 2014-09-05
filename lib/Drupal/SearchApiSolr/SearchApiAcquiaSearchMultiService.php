@@ -25,7 +25,11 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
    * {@inheritdoc}
    */
   public function setConnectionOptions() {
-    if (isset($this->options['acquia_override_subscription'])) {
+    $has_id = (isset($this->options['acquia_override_subscription']['acquia_override_subscription_id'])) ? true : false;
+    $has_key = (isset($this->options['acquia_override_subscription']['acquia_override_subscription_key'])) ? true : false;
+    $has_corename = (isset($this->options['acquia_override_subscription']['acquia_override_subscription_corename'])) ? true : false;
+
+    if ($has_id && $has_key && $has_corename) {
       $identifier = $this->options['acquia_override_subscription']['acquia_override_subscription_id'];
       $key = $this->options['acquia_override_subscription']['acquia_override_subscription_key'];
       $corename = $this->options['acquia_override_subscription']['acquia_override_subscription_corename'];
@@ -123,12 +127,17 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
 
     // If we do not have auto switch enabled, statically configure the right
     // core to options.
-    $form_values = $values['acquia_override_subscription'];
-    if (!$form_values['acquia_override_auto_switch']) {
-      $identifier = $form_values['acquia_override_subscription_id'];
-      $key = $form_values['acquia_override_subscription_key'];
-      $corename = $form_values['acquia_override_subscription_corename'];
+    $has_id = (isset($form_state['values']['acquia_override_subscription_id'])) ? true : false;
+    $has_key = (isset($form_state['values']['acquia_override_subscription_key'])) ? true : false;
+    $has_corename = (isset($form_state['values']['acquia_override_subscription_corename'])) ? true : false;
+    $has_auto_switch = !empty($form_state['values']['acquia_override_auto_switch']) ? true : false;
 
+    if (!$has_auto_switch && $has_id && $has_key && $has_corename) {
+      $identifier = $form_state['values']['acquia_override_subscription_id'];
+      $key = $form_state['values']['acquia_override_subscription_key'];
+      $corename = $form_state['values']['acquia_override_subscription_corename'];
+
+      // Set our solr path
       $this->options['path'] = '/solr/' . $corename;
 
       // Set the derived key for this environment
