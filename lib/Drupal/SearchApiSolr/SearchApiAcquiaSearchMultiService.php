@@ -36,7 +36,7 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
 
       $this->options['path'] = '/solr/' . $corename;
       // Set the derived key for this environment.
-      $subscription = acquia_agent_get_subscription(array(), $identifier, $key);
+      $subscription = $this->getAcquiaSubscription($identifier, $key);
       $derived_key_salt = $subscription['derived_key_salt'];
       $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $corename, $key);
       $this->options['derived_key'] = $derived_key;
@@ -141,7 +141,7 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
       $this->options['path'] = '/solr/' . $corename;
 
       // Set the derived key for this environment
-      $subscription = acquia_agent_get_subscription(array(), $identifier, $key);
+      $subscription = $this->getAcquiaSubscription($identifier, $key);
       $derived_key_salt = $subscription['derived_key_salt'];
       $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $corename, $key);
       $this->options['derived_key'] = $derived_key;
@@ -149,5 +149,37 @@ class SearchApiAcquiaSearchMultiService extends SearchApiAcquiaSearchService {
       $search_host = acquia_search_multi_subs_get_hostname($corename);
       $this->options['host'] = $search_host;
     }
+  }
+
+  /**
+   * Get subscription info from the acquia_connector module, and cache it for
+   * 5 minutes.
+   *
+   * @param $acquia_identifier
+   * @param $acquia_key
+   * @return array
+   *   Subscription data
+   */
+  protected function getAcquiaSubscription($acquia_identifier, $acquia_key) {
+    $subscription_cache = &drupal_static(__FUNCTION__, array());
+    // Get subscription and use cache.
+    $cid = 'asms-subscription-' . $acquia_identifier . ':' . $acquia_key;
+    if (isset($subscription_cache[$cid])) {
+      $subscription = $subscription_cache[$cid];
+    }
+    else {
+      $cached = cache_get($cid);
+      if ($cached && $cached->data && REQUEST_TIME < $cached->expire) {
+        $subscription = $cached->data;
+        $subscription_cache[$cid] = $subscription;
+      }
+    }
+    if (empty($subscription)) {
+      $subscription = acquia_agent_get_subscription(array(), $acquia_identifier, $acquia_key);
+      $subscription_cache[$cid] = $subscription;
+      // Cache this for 5 minutes.
+      cache_set($cid, $subscription, 'cache', REQUEST_TIME + 300);
+    }
+    return $subscription;
   }
 }
