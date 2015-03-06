@@ -70,8 +70,10 @@ function acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, 
     // Add our failover options
     $expected_core_names[] = $acquia_identifier . '.' . $site_environment . '.failover';
   }
-  // Add suffix-less core if we're on prod now.
-  if ($ah_site_environment == 'prod') {
+  // Add suffix-less core if we're on prod now. If the sitename is empty,
+  // it means we are not on Acquia Hosting or something is wrong. Do not
+  // allow the prod index to be one of the available cores.
+  if ($ah_site_environment == 'prod' && $ah_site_name != '') {
     $expected_core_names[] = $acquia_identifier;
   }
 
