@@ -18,6 +18,11 @@
  * WXYZ-12345_[sitename]dev    (only if $ah_site_environment isn't 'prod')
  * WXYZ-12345                  (only if $ah_site_environment is 'prod')
  *
+ * NOTE that [sitefolder] is a stripped-down version of the sites/* folder,
+ * such that it is only alphanumeric and max. 16 chars in length.
+ * E.g. for sites/www.example.com, the expected corename for a dev environment
+ * could be WXYZ-12345.dev.wwwexamplecom
+ *
  * @param string $acquia_identifier
  *   Subscription ID. E.g. WXYZ-12345
  * @param string $ah_site_environment
@@ -49,6 +54,9 @@ function acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, 
     // The possible core name suffixes are [current site folder name] and 'default'.
     $core_suffixes = array_unique(array($sites_foldername, 'default'));
     foreach ($core_suffixes as $core_suffix) {
+      // Fix the $core_suffix: alphanumeric only, and max length == 16
+      $core_suffix = preg_replace('@[^a-zA-Z0-9]+@', '', $core_suffix);
+      $core_suffix = substr($core_suffix, 0, 16);
       // Add WXYZ-12345.[env].[sitefolder] option.
       $expected_core_names[] = $acquia_identifier . '.' . $site_environment . '.' . $core_suffix;
       // Add WXYZ-12345_[sitename][env] option.
