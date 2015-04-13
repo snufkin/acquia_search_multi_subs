@@ -123,12 +123,3 @@ function acquia_search_multi_subs_searchapi_set_default_core(SearchApiServer &$s
   $server->options['derived_key'] = $derived_key;
   $server->save();
 }
-
-/**
- * Implements hook_search_api_service_info_alter().
- *
- * Overrides the service class used to connect to Acquia Search.
- */
-function acquia_search_multi_subs_search_api_service_info_alter(array &$service_info) {
-  $service_info['acquia_search_service']['class'] = 'SearchApiAcquiaSearchMultiService';
-}
