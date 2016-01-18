@@ -99,9 +99,9 @@ function acquia_search_multi_subs_apachesolr_init() {
       foreach ($available_search_cores as $available_search_core) {
 
         // Checking if we need to switch to another core.
-        if ($available_search_core['core_id'] == $expected_core_name) {
+        if (strtolower($available_search_core['core_id']) == strtolower($expected_core_name)) {
           // If the core is already the same, don't do anything.
-          if ($expected_environment_core_url != $environment_core_url) {
+          if (strtolower($expected_environment_core_url) != strtolower($environment_core_url)) {
             acquia_search_multi_subs_apachesolr_set_default_core($env_id, $available_search_core);
             watchdog('acquia_search_multi_subs', 'Switched Apache Solr environment "@env_id" from core @old_core_id to @new_core_id', array('@env_id' => $env_id, '@old_core_id' => $environment_core_url, '@new_core_id' => $expected_environment_core_url), WATCHDOG_NOTICE);
           }
