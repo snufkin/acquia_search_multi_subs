@@ -212,9 +212,11 @@ function acquia_search_multi_subs_acquia_search_enable_alter(array &$environment
   $corename = apachesolr_environment_variable_get($env_id, 'acquia_override_subscription_corename');
 
   // Override the URL
-  $search_host = acquia_search_multi_subs_get_hostname($corename);
-  $url = 'http://' . $search_host . variable_get('acquia_search_path', '/solr/'. $corename);
-  $environment['url'] = $url;
+  if ($corename) {
+    $search_host = acquia_search_multi_subs_get_hostname($corename);
+    $url = 'http://' . $search_host . variable_get('acquia_search_path', '/solr/' . $corename);
+    $environment['url'] = $url;
+  }
 }
 
 /**
