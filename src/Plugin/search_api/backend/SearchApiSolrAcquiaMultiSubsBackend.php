@@ -61,15 +61,6 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
    * {@inheritdoc}
    */
   public function viewSettings() {
-    $uri = Url::fromUri('http://www.acquia.com/products-services/acquia-search', array('absolute' => TRUE));
-    drupal_set_message(t("Search is being provided by the @as network service.", array('@as' => \Drupal::l(t('Acquia Search'), $uri))));
-    return parent::viewSettings();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function viewSettings() {
     $info = array();
 
     $options = $this->options;
