@@ -33,3 +33,4 @@ class RefreshStatus {
       return $this->redirect('acquia_connector.settings');
     }
   }
+}
