@@ -37,12 +37,3 @@ function acquia_search_multi_subs_acquia_subscription_status($active, $subscript
     acquia_search_multi_subs_init();
   }
 }
-
-/**
- * Implements hook_search_api_service_info_alter().
- *
- * Overrides the service class used to connect to Acquia Search.
- */
-function acquia_search_multi_subs_search_api_service_info_alter(array &$service_info) {
-  $service_info['acquia_search_service']['class'] = 'SearchApiAcquiaSearchMultiService';
-}
