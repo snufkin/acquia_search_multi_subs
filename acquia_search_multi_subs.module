@@ -39,23 +39,6 @@ function acquia_search_multi_subs_acquia_subscription_status($active, $subscript
 }
 
 /**
- * Implements hook_menu().
- *
- * @return array
- */
-function acquia_search_multi_subs_menu() {
-  $items = array();
-  $items['admin/config/system/acquia-search-multi-subs/refresh-status'] = array(
-    'title' => 'Manual update check',
-    'page callback' => 'acquia_search_multi_subs_agent_refresh_status',
-    'access arguments' => array('administer site configuration'),
-    'type' => MENU_CALLBACK,
-  );
-  return $items;
-}
-
-
-/**
  * Menu callback for 'admin/config/system/acquia-search-multi-subs/refresh-status'.
  *
  * We use this in our message when a user only has 1 core. It's useful so they do not have to go to the system page
