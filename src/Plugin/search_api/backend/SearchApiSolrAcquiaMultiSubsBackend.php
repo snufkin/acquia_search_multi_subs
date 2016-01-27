@@ -20,7 +20,7 @@ use Drupal\acquia_connector\Client;
  *   description = @Translation("Index items using a specific Acquia Apache Solr search server.")
  * )
  */
-class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
+class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
 
   protected $eventDispatcher = FALSE;
   /**
@@ -67,6 +67,25 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function viewSettings() {
+    $info = array();
+
+    $options = $this->options;
+
+    $auto_detection = (isset($this->configuration['acquia_override_auto_switch']) && $this->configuration['acquia_override_auto_switch']);
+    $auto_detection_state = ($auto_detection) ? $this->t('enabled') : $this->t('disabled');
+
+    $info[] = array(
+      'label' => $this->t('Acquia Search Auto Detection'),
+      'info' => $this->t('Auto detection of your environment is <strong>@state</strong>', array('@state' => $auto_detection_state)),
+    );
+
+    return parent::viewSettings();
+  }
+
+  /**
    * Creates a connection to the Solr server as configured in $this->configuration.
    */
   protected function connect() {
@@ -75,7 +94,7 @@ class SearchApiSolrAcquiaBackend extends SearchApiSolrBackend {
       $this->eventDispatcher = $this->solr->getEventDispatcher();
       $plugin = new SearchSubscriber();
       $this->solr->registerPlugin('acquia_solr_search_subscriber', $plugin);
-      // Don't user curl.
+      // Don't use curl.
       $this->solr->setAdapter('Solarium\Core\Client\Adapter\Http');
     }
   }
