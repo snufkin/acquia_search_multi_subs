@@ -8,6 +8,7 @@
 namespace Drupal\acquia_search_multi_subs\Controller;
 use Drupal\acquia_connector\Subscription;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Url;
 
 /**
  * Controller routines to refresh the subscription status.
@@ -26,7 +27,7 @@ class RefreshStatus {
     // Return to the settings page for acquia_connector, or to the destination if it was set.
     $destination = \Drupal::destination()->getAsArray();
     if (isset($destination['destination'])) {
-      return new RedirectResponse(\Drupal::url($destination['destination']);
+      return new RedirectResponse(Url::fromUri($destination['destination']));
     }
     else {
       return $this->redirect('acquia_connector.settings');
