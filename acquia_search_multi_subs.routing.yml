@@ -1,5 +1,5 @@
 acquia_search_multi_subs.refresh_status:
-  path: /admin/config/system/acquia-search-multi-subs/refresh-status
+  path: /admin/config/system/acquia_search_multi_subs/refresh_status
   defaults:
     _controller: '\Drupal\acquia_search_multi_subs\Controller\RefreshStatus::refresh'
     _title: 'Manual update check',
