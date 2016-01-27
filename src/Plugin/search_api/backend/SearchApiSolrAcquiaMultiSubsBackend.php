@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\acquia_search\Plugin\search_api\backend;
+namespace Drupal\acquia_search_multi_subs\Plugin\search_api\backend;
 
 use Drupal\search_api_solr\Plugin\search_api\backend\SearchApiSolrBackend;
 use Drupal\Core\Config\Config;
