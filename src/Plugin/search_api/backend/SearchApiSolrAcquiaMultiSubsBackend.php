@@ -99,7 +99,30 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     $form['port']['#disabled'] = TRUE;
     $form['path']['#disabled'] = TRUE;
 
+    // Define the override form.
+    $form['acquia_override_subscription'] = array(
+      '#type' => 'fieldset',
+      '#title' => $this->t('Configure Acquia Search'),
+      '#description' => $this->t('This is usually not necessary unless you really
+        want this search environment to connect to a different Acquia search subscription.
+        By default it uses your subscription that was configured for the
+        <a href="@url">Acquia Connector</a>.', array('@url' => Url::fromRoute('acquia_connector.settings')->toString())),
+      '#collapsed' => FALSE,
+      '#collapsible' => TRUE,
+      '#tree' => TRUE,
+      '#weight' => -10,
+      '#element_validate' => array('acquia_search_multi_subs_form_validate'),
+    );
+
+    // Add a checkbox to auto switch per environment.
+    $form['acquia_override_subscription']['acquia_override_auto_switch'] = array(
+      '#type' => 'checkbox',
+      '#title' => $this->t('Automatically switch when an Acquia Environment is detected'),
+      '#description' => $this->t('Based on the detection of the AH_SITE_NAME and
+        AH_SITE_ENVIRONMENT header we can detect which environment you are currently
+        using and switch the Acquia Search Core automatically if there is a corresponding core.'),
+      '#default_value' => $configuration['acquia_override_auto_switch'],
+    );
     return $form;
   }
-
 }
