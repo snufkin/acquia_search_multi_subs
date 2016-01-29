@@ -11,6 +11,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\acquia_search\EventSubscriber\SearchSubscriber;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\acquia_connector\Client;
+use Drupal\acquia_connector\CryptConnector;
+use Symfony\Component\Validator\Constraints\False;
 
 
 /**
@@ -38,8 +40,11 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
 
 
     $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
+    dpm($subscription);
     $core_id = $subscription['heartbeat_data']['search_cores'][0]['core_id'];
     $configuration['path'] = '/solr/' . $core_id;
+
+//    $this->derived_key[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $identifier, $key);
     return parent::__construct($configuration, $plugin_id, $plugin_definition, $module_handler, $search_api_solr_settings, $language_manager);
   }
 
@@ -95,9 +100,9 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
    */
   public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form = parent::buildConfigurationForm($form, $form_state);
-    $form['host']['#disabled'] = TRUE;
-    $form['port']['#disabled'] = TRUE;
-    $form['path']['#disabled'] = TRUE;
+    $form['host']['#access'] = FALSE;
+    $form['port']['#access'] = FALSE;
+    $form['path']['#access'] = FALSE;
 
     // Define the override form.
     $form['acquia_override_subscription'] = array(
@@ -216,8 +221,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     $key = $values['acquia_override_subscription']['acquia_override_subscription_key'];
     $corename = $values['acquia_override_subscription']['acquia_override_subscription_corename'];
 
-      // Set our solr path
-    $this->options['path'] = '/solr/' . $corename;
+    $value['path'] = '/solr/' . $corename;
 
       // Set the derived key for this environment.
       // Subscription already cached by configurationFormValidate().
@@ -228,30 +232,6 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
 
       $search_host = acquia_search_multi_subs_get_hostname($corename);
       $this->options['host'] = $search_host;
-
-    parent::submitConfigurationForm($form, $form_state);
-    // Since the form is nested into another, we can't simply use #parents for
-    // doing this array restructuring magic. (At least not without creating an
-    // unnecessary dependency on internal implementation.)
-    $values += $values['http'];
-    $values += $values['advanced'];
-    $values += !empty($values['autocomplete']) ? $values['autocomplete'] : array();
-    unset($values['http'], $values['advanced'], $values['autocomplete']);
-
-    // Highlighting retrieved data only makes sense when we retrieve data.
-    $values['highlight_data'] &= $values['retrieve_data'];
-
-    // For password fields, there is no default value, they're empty by default.
-    // Therefore we ignore empty submissions if the user didn't change either.
-    if ($values['http_pass'] === ''
-      && isset($this->configuration['http_user'])
-      && $values['http_user'] === $this->configuration['http_user']) {
-      $values['http_pass'] = $this->configuration['http_pass'];
-    }
-
-    foreach ($values as $key => $value) {
-      $form_state->setValue($key, $value);
-    }
 
     parent::submitConfigurationForm($form, $form_state);
   }
