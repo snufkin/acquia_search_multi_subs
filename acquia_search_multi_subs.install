@@ -21,20 +21,6 @@ function acquia_search_multi_subs_enable() {
  * Remove variables from any environment that would have this information
  */
 function acquia_search_multi_subs_uninstall() {
-  if (module_exists('apachesolr')) {
-    variable_del('apachesolr_environments');
-    $environments = apachesolr_load_all_environments();
-    foreach ($environments as $environment) {
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_search');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_search_key');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_corename');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_selector');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_key');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_subscription_id');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_auto_switch');
-      apachesolr_environment_variable_del($environment['env_id'], 'acquia_override_failover');
-    }
-  }
   if (module_exists('search_api_solr')) {
     $servers = db_select('search_api_server', 's')
       ->fields('s')
