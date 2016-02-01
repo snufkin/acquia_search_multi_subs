@@ -17,6 +17,10 @@ class SearchSubscriber extends AbstractPlugin {
   protected $uri = '';
   protected $options = '';
 
+  /**
+   * @param \Solarium\Core\Client\Client $client
+   * @param array $options
+   */
   public function initPlugin($client, $options) {
     $this->client = $client;
     $this->options = $options;
@@ -45,7 +49,7 @@ class SearchSubscriber extends AbstractPlugin {
       $string = $path . $query; // For pings only.
     }
 
-    $cookie = $this->calculateAuthCookie($string, $this->nonce);
+    $cookie = $this->calculateAuthCookie($string, $this->nonce, NULL, $this->client->getEndpoint()->getOption('core'));
     $request->addHeader('Cookie: ' . $cookie);
     $request->addHeader('User-Agent: ' . 'acquia_search/'. \Drupal::config('acquia_search.settings')->get('version'));
   }
@@ -155,7 +159,7 @@ class SearchSubscriber extends AbstractPlugin {
         $this->derived_key[$env_id] = '';
       }
       elseif (!isset($derived_key[$env_id])) {
-        $this->derived_key[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $identifier, $key);
+        $this->derived_key[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $env_id, $key);
       }
     }
 
