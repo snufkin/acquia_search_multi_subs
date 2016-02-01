@@ -213,15 +213,33 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
 
   /**
    * {@inheritdoc}
+   * Method to save the configuration.
+   *
+   * We only save the index details, when the backend is overwritten, either
+   * by providing the exact index details manually, or when the user chose
+   * one of the available indices from the dropdown list.
+   *
+   * In auto switch mode we only save the mode boolean flag.
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
     $values = $form_state->getValues();
 
-    $identifier = $values['acquia_override_subscription']['acquia_override_subscription_id'];
-    $key = $values['acquia_override_subscription']['acquia_override_subscription_key'];
-    $corename = $values['acquia_override_subscription']['acquia_override_subscription_corename'];
+    // If we do not have auto switch enabled, statically configure the right
+    // core to options.
 
-    $value['path'] = '/solr/' . $corename;
+    $has_id = (isset($values['acquia_override_subscription']['acquia_override_subscription_id'])) ? true : false;
+    $has_key = (isset($values['acquia_override_subscription']['acquia_override_subscription_key'])) ? true : false;
+    $has_corename = (isset($values['acquia_override_subscription']['acquia_override_subscription_corename'])) ? true : false;
+    $has_auto_switch = !empty($values['acquia_override_subscription']['acquia_override_auto_switch']) ? true : false;
+
+    // Static override for the index.
+    if (!$has_auto_switch && $has_id && $has_key && $has_corename) {
+      $identifier = $values['acquia_override_subscription']['acquia_override_subscription_id'];
+      $key = $values['acquia_override_subscription']['acquia_override_subscription_key'];
+      $corename = $values['acquia_override_subscription']['acquia_override_subscription_corename'];
+
+      // Set our solr path
+      $this->options['path'] = '/solr/' . $corename;
 
       // Set the derived key for this environment.
       // Subscription already cached by configurationFormValidate().
@@ -232,7 +250,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
 
       $search_host = acquia_search_multi_subs_get_hostname($corename);
       $this->options['host'] = $search_host;
-
+    }
     parent::submitConfigurationForm($form, $form_state);
   }
 }
