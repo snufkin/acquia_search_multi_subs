@@ -1,6 +1,6 @@
 <?php
 
-namespace Drupal\acquia_search\EventSubscriber;
+namespace Drupal\acquia_search_multi_subs\EventSubscriber;
 
 use Solarium\Core\Event\Events;
 use Solarium\Core\Plugin\AbstractPlugin;
@@ -15,9 +15,11 @@ class SearchSubscriber extends AbstractPlugin {
   protected $derived_key = [];
   protected $nonce = '';
   protected $uri = '';
+  protected $options = '';
 
   public function initPlugin($client, $options) {
     $this->client = $client;
+    $this->options = $options;
     $dispatcher = $this->client->getEventDispatcher();
     $dispatcher->addListener(Events::PRE_EXECUTE_REQUEST, array($this, 'preExecuteRequest'));
     $dispatcher->addListener(Events::POST_EXECUTE_REQUEST, array($this, 'postExecuteRequest'));
