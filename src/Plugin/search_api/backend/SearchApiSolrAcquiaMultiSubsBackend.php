@@ -29,22 +29,38 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
    * {@inheritdoc}
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings, LanguageManagerInterface $language_manager) {
+
+    // If we have a particular core selected, then construct the index
+    // configuration accordingly.
+
+    // Shortcut to the override configuration.
+    $override = $configuration['acquia_override_subscription'];
+
+    if (!empty($override['acquia_override_selector'])) {
+      $configuration['path'] = '/solr/' . $override['acquia_override_selector'];
+      $configuration['core'] = $override['acquia_override_selector'];
+    }
+    else if (!empty($override['acquia_override_auto_switch']) && $override['acquia_override_auto_switch'] == TRUE) {
+      // Do the magic env specific detection here.
+    }
+    else if (!empty($override['acquia_override_subscription_id']) &&
+      !empty($override['acquia_override_subscription_key']) &&
+      !empty($override['acquia_override_subscription_corename'])) {
+      // Manual override.
+    }
+    // No override is in use.
+    else {
+      $configuration['host'] = acquia_search_get_search_host();
+      $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('identifier');
+    }
+
     if ($configuration['scheme'] == 'https') {
       $configuration['port'] = 443;
     }
     else {
       $configuration['port'] = 80;
     }
-    $configuration['host'] = acquia_search_get_search_host();
-    $configuration['path'] = '/solr/' . \Drupal::config('acquia_connector.settings')->get('identifier');
 
-
-    $subscription = \Drupal::config('acquia_connector.settings')->get('subscription_data');
-    dpm($subscription);
-    $core_id = $subscription['heartbeat_data']['search_cores'][0]['core_id'];
-    $configuration['path'] = '/solr/' . $core_id;
-
-//    $this->derived_key[$env_id] = CryptConnector::createDerivedKey($derived_key_salt, $identifier, $key);
     return parent::__construct($configuration, $plugin_id, $plugin_definition, $module_handler, $search_api_solr_settings, $language_manager);
   }
 
@@ -83,6 +99,8 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
 
   /**
    * Creates a connection to the Solr server as configured in $this->configuration.
+   *
+   * We need to override the endpoint to enable environment specific detection.
    */
   protected function connect() {
     parent::connect();
@@ -222,35 +240,37 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
    * In auto switch mode we only save the mode boolean flag.
    */
   public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
+    parent::submitConfigurationForm($form, $form_state);
     $values = $form_state->getValues();
 
     // If we do not have auto switch enabled, statically configure the right
     // core to options.
 
-    $has_id = (isset($values['acquia_override_subscription']['acquia_override_subscription_id'])) ? true : false;
-    $has_key = (isset($values['acquia_override_subscription']['acquia_override_subscription_key'])) ? true : false;
-    $has_corename = (isset($values['acquia_override_subscription']['acquia_override_subscription_corename'])) ? true : false;
-    $has_auto_switch = !empty($values['acquia_override_subscription']['acquia_override_auto_switch']) ? true : false;
+    $has_id = (isset($values['acquia_override_subscription']['acquia_override_subscription_id'])) ? TRUE : FALSE;
+    $has_key = (isset($values['acquia_override_subscription']['acquia_override_subscription_key'])) ? TRUE : FALSE;
+    $has_corename = (isset($values['acquia_override_subscription']['acquia_override_subscription_corename'])) ? TRUE : FALSE;
+    $has_auto_switch = !empty($values['acquia_override_subscription']['acquia_override_auto_switch']) ? TRUE : FALSE;
 
-    // Static override for the index.
-    if (!$has_auto_switch && $has_id && $has_key && $has_corename) {
-      $identifier = $values['acquia_override_subscription']['acquia_override_subscription_id'];
-      $key = $values['acquia_override_subscription']['acquia_override_subscription_key'];
-      $corename = $values['acquia_override_subscription']['acquia_override_subscription_corename'];
-
-      // Set our solr path
-      $this->options['path'] = '/solr/' . $corename;
-
-      // Set the derived key for this environment.
-      // Subscription already cached by configurationFormValidate().
-      $subscription = $this->getAcquiaSubscription($identifier, $key);
-      $derived_key_salt = $subscription['derived_key_salt'];
-      $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $corename, $key);
-      $this->options['derived_key'] = $derived_key;
-
-      $search_host = acquia_search_multi_subs_get_hostname($corename);
-      $this->options['host'] = $search_host;
-    }
-    parent::submitConfigurationForm($form, $form_state);
+    dpm($values);
+//
+//    // Static override for the index, save the provided core information.
+//    if (!$has_auto_switch && $has_id && $has_key && $has_corename) {
+//      $identifier = $values['acquia_override_subscription']['acquia_override_subscription_id'];
+//      $key = $values['acquia_override_subscription']['acquia_override_subscription_key'];
+//      $corename = $values['acquia_override_subscription']['acquia_override_subscription_corename'];
+//
+//      // Set our solr path
+//      $this->options['path'] = '/solr/' . $corename;
+//
+//      // Set the derived key for this environment.
+//      // Subscription already cached by configurationFormValidate().
+//      $subscription = $this->getAcquiaSubscription($identifier, $key);
+//      $derived_key_salt = $subscription['derived_key_salt'];
+//      $derived_key = _acquia_search_multi_subs_create_derived_key($derived_key_salt, $corename, $key);
+//      $this->options['derived_key'] = $derived_key;
+//
+//      $search_host = acquia_search_multi_subs_get_hostname($corename);
+//      $this->options['host'] = $search_host;
+//    }
   }
 }
