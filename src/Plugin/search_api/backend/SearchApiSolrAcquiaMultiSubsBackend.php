@@ -89,7 +89,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     if (!$this->eventDispatcher) {
       $this->eventDispatcher = $this->solr->getEventDispatcher();
       $plugin = new SearchSubscriber();
-      $this->solr->registerPlugin('acquia_solr_search_subscriber', $plugin);
+      $this->solr->registerPlugin('acquia_solr_search_subscriber', $plugin, $this->configuration['acquia_override_subscription']);
       // Don't use curl.
       $this->solr->setAdapter('Solarium\Core\Client\Adapter\Http');
     }
