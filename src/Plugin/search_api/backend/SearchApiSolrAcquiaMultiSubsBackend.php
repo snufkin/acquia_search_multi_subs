@@ -128,7 +128,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
         using and switch the Acquia Search Core automatically if there is a corresponding core.
         Make sure to <a href="@url">update your locally cached subscription information</a> if your core does not show up.',
         array('@url' => Url::fromRoute('acquia_connector.refresh_status')->toString())),
-      '#default_value' => $this->configuration['acquia_override_auto_switch'],
+      '#default_value' => $this->configuration['acquia_override_subscription']['acquia_override_auto_switch'],
     );
 
     $options = array('default' => t('Default'), 'other' => t('Other'));
@@ -153,7 +153,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
       '#type' => 'select',
       '#title' => t('Acquia Search Core'),
       '#options' => $options,
-      '#default_value' => $this->configuration['acquia_override_selector'],
+      '#default_value' => $this->configuration['acquia_override_subscription']['acquia_override_selector'],
       '#description' => t('Choose a search core to connect to.'),
       '#states' => array(
         'visible' => array(
@@ -174,7 +174,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
       '#type' => 'textfield',
       '#title' => t('Enter your Acquia Subscription Identifier'),
       '#description' => t('Prefilled with the identifier of the Acquia Connector. You can find your details in Acquia Insight.'),
-      '#default_value' => $this->configuration['acquia_override_subscription_id'],
+      '#default_value' => $this->configuration['acquia_override_subscription']['acquia_override_subscription_id'],
       '#states' => array(
         'visible' => array(
           ':input[name*="acquia_override_selector"]' => array('value' => 'other'),
@@ -187,7 +187,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
       '#type' => 'textfield',
       '#title' => t('Enter your Acquia Subscription key'),
       '#description' => t('Prefilled with the key of the Acquia Connector. You can find your details in Acquia Insight.'),
-      '#default_value' => $this->configuration['acquia_override_subscription_key'],
+      '#default_value' => $this->configuration['acquia_override_subscription']['acquia_override_subscription_key'],
       '#states' => array(
         'visible' => array(
           ':input[name*="acquia_override_selector"]' => array('value' => 'other'),
@@ -200,7 +200,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
       '#type' => 'textfield',
       '#description' => t('Please enter the name of the Acquia Search core you want to connect to that belongs to the above identifier and key. In most cases you would want to use the dropdown list to get the correct value.'),
       '#title' => t('Enter your Acquia Search Core Name'),
-      '#default_value' => $this->configuration['acquia_override_subscription_corename'],
+      '#default_value' => $this->configuration['acquia_override_subscription']['acquia_override_subscription_corename'],
       '#states' => array(
         'visible' => array(
           ':input[name*="acquia_override_selector"]' => array('value' => 'other'),
