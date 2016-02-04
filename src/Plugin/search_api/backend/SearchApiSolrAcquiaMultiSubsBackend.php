@@ -37,7 +37,12 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     $override = $configuration['acquia_override_subscription'];
 
     if (!empty($override['acquia_override_selector'])) {
-      $configuration['path'] = '/solr/' . $override['acquia_override_selector'];
+      $configuration['host'] = acquia_search_get_search_host();
+      // Attention! We do not need to add the core to the path, because the core property
+      // will inherit the core property. @see Endpoint::getBaseUri().
+      // The core property is passed in our connect method, becasue we pass
+      // the configuration of this backend to the plugin.
+      $configuration['path'] = '/solr/';
       $configuration['core'] = $override['acquia_override_selector'];
     }
     else if (!empty($override['acquia_override_auto_switch']) && $override['acquia_override_auto_switch'] == TRUE) {
@@ -248,8 +253,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     $has_key = (isset($values['acquia_override_subscription']['acquia_override_subscription_key'])) ? TRUE : FALSE;
     $has_corename = (isset($values['acquia_override_subscription']['acquia_override_subscription_corename'])) ? TRUE : FALSE;
     $has_auto_switch = !empty($values['acquia_override_subscription']['acquia_override_auto_switch']) ? TRUE : FALSE;
-
-    dpm($values);
+    
 //
 //    // Static override for the index, save the provided core information.
 //    if (!$has_auto_switch && $has_id && $has_key && $has_corename) {
