@@ -67,7 +67,7 @@ class SearchSubscriber extends AbstractPlugin {
     if ($event->getRequest()->getHandler() == 'admin/ping') {
       return;
     }
-    $this->authenticateResponse($event->getResponse(), $this->nonce, $this->uri);
+    $this->authenticateResponse($event->getResponse(), $this->nonce, $this->uri, NULL, $this->client->getEndpoint()->getOption('core'));
   }
 
   /**
@@ -83,7 +83,7 @@ class SearchSubscriber extends AbstractPlugin {
    */
   protected function authenticateResponse($response, $nonce, $url) {
     $hmac = $this->extractHmac($response->getHeaders());
-    if (!$this->validateResponse($hmac, $nonce, $response->getBody())) {
+    if (!$this->validateResponse($hmac, $nonce, $response->getBody(), NULL, $this->client->getEndpoint()->getOption('core'))) {
       throw new HttpException('Authentication of search content failed url: '. $url);
     }
     return $response;
