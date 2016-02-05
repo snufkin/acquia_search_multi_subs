@@ -2,5 +2,5 @@
 
 /**
  * @file
- * Allows automatic switching of Solr servers based on the current environemnt.
+ * Allows automatic switching of Solr servers based on the current environment.
  */
