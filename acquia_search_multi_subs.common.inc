@@ -83,29 +83,6 @@ function acquia_search_multi_subs_get_expected_search_cores($acquia_identifier, 
 }
 
 /**
- * Retrieves all the available search cores as set in the subscription.
- *
- * @return array
- *   The search cores that are available according to the information in the
- *   rpc backend.
- */
-function acquia_search_multi_subs_get_search_cores() {
-  $search_cores = drupal_static(__FUNCTION__, array());
-
-  // See if we can return it from static cache.
-  if (!empty($search_cores)) {
-    return $search_cores;
-  }
-
-  $subscription = acquia_agent_settings('acquia_subscription_data');
-  // Get our search cores if they exist.
-  if (isset($subscription['heartbeat_data']['search_cores'])) {
-    $search_cores = $subscription['heartbeat_data']['search_cores'];
-  }
-  return $search_cores;
-}
-
-/**
  * Form constructor for configuring the Solr server switch.
  *
  * Used by SearchApiAcquiaSearchMultiService::configurationForm() and

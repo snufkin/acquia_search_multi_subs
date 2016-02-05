@@ -147,8 +147,8 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
       '#description' => $this->t('Based on the detection of the AH_SITE_NAME and
         AH_SITE_ENVIRONMENT header we can detect which environment you are currently
         using and switch the Acquia Search Core automatically if there is a corresponding core.
-        Make sure to <a href="@url">update your locally cached subscription information</a> if your core does not show up.',
-        array('@url' => Url::fromRoute('acquia_connector.refresh_status')->toString())),
+        Make sure to <a href=":url">update your locally cached subscription information</a> if your core does not show up.',
+        array(':url' => Url::fromRoute('acquia_connector.refresh_status')->toString())),
       '#default_value' => $this->configuration['acquia_override_subscription']['acquia_override_auto_switch'],
     );
 
@@ -186,8 +186,12 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     // Show a warning if there are not enough cores available to make the auto
     // switch possible.
     if (count($options) <= 2) {
-      $t_args = array('!refresh' => l(t('refresh'), 'admin/config/system/acquia-search-multi-subs/refresh-status', array('query' => array( 'destination' => current_path()))));
-      drupal_set_message(t('It seems you only have 1 Acquia Search index. To find out if you are eligible for a search core per environment it is recommended you open a support ticket with Acquia. Once you have that settled, !refresh your subscription so it pulls in the latest information to connect to your indexes.', $t_args), 'warning', FALSE);
+      drupal_set_message($this->t('It seems you only have 1 Acquia Search index.
+      To find out if you are eligible for a search core per environment it is
+      recommended you open a support ticket with Acquia. Once you have that settled,
+      <a href=":url">refresh</a> your subscription so it pulls in the latest information to connect
+      to your indexes.',
+        array(':url' => Url::fromRoute('acquia_connector.refresh_status')->toString())), 'warning', FALSE);
     }
 
     // Generate the custom form.
@@ -253,7 +257,7 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
     $has_key = (isset($values['acquia_override_subscription']['acquia_override_subscription_key'])) ? TRUE : FALSE;
     $has_corename = (isset($values['acquia_override_subscription']['acquia_override_subscription_corename'])) ? TRUE : FALSE;
     $has_auto_switch = !empty($values['acquia_override_subscription']['acquia_override_auto_switch']) ? TRUE : FALSE;
-    
+
 //
 //    // Static override for the index, save the provided core information.
 //    if (!$has_auto_switch && $has_id && $has_key && $has_corename) {
