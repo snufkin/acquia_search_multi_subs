@@ -30,13 +30,24 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
    */
   public function __construct(array $configuration, $plugin_id, array $plugin_definition, ModuleHandlerInterface $module_handler, Config $search_api_solr_settings, LanguageManagerInterface $language_manager) {
 
-    // If we have a particular core selected, then construct the index
-    // configuration accordingly.
-
     // Shortcut to the override configuration.
     $override = $configuration['acquia_override_subscription'];
 
-    if (!empty($override['acquia_override_selector'])) {
+    $ah_site_environment = isset($_ENV['AH_SITE_ENVIRONMENT']) ? $_ENV['AH_SITE_ENVIRONMENT'] : '';
+    $ah_site_name = isset($_ENV['AH_SITE_NAME']) ? $_ENV['AH_SITE_NAME'] : '';
+    $ah_region = isset($_ENV['AH_CURRENT_REGION']) ? $_ENV['AH_CURRENT_REGION'] : '';
+
+    // If automatic switching has been enabled, then build the core string out of
+    // the environment information.
+    if (!empty($override['acquia_override_auto_switch']) && $override['acquia_override_auto_switch'] && $ah_site_environment != '') {
+      $identifier = \Drupal::config('acquia_connector.settings')->get('identifier');
+      $configuration['path'] = '/solr/';
+      $configuration['core'] = $identifier . '.' . $ah_site_environment . '.' . $ah_site_name;
+    }
+
+    // If we have a particular core selected, then construct the index
+    // configuration accordingly.
+    else if (!empty($override['acquia_override_selector'])) {
       $configuration['host'] = acquia_search_get_search_host();
       // Attention! We do not need to add the core to the path, because the core property
       // will inherit the core property. @see Endpoint::getBaseUri().
@@ -44,9 +55,6 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
       // the configuration of this backend to the plugin.
       $configuration['path'] = '/solr/';
       $configuration['core'] = $override['acquia_override_selector'];
-    }
-    else if (!empty($override['acquia_override_auto_switch']) && $override['acquia_override_auto_switch'] == TRUE) {
-      // Do the magic env specific detection here.
     }
     else if (!empty($override['acquia_override_subscription_id']) &&
       !empty($override['acquia_override_subscription_key']) &&
