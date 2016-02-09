@@ -88,8 +88,9 @@ class SearchApiSolrAcquiaMultiSubsBackend extends SearchApiSolrBackend {
    */
   public function viewSettings() {
     $info = parent::viewSettings();
+    $override = $this->configuration['acquia_override_subscription'];
 
-    $auto_detection = (isset($this->configuration['acquia_override_auto_switch']) && $this->configuration['acquia_override_auto_switch']);
+    $auto_detection = (isset($override['acquia_override_auto_switch']) && $override['acquia_override_auto_switch']);
     $auto_detection_state = ($auto_detection) ? $this->t('enabled') : $this->t('disabled');
 
     $info[] = array(
