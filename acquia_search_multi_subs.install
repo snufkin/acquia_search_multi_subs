@@ -21,18 +21,20 @@ function acquia_search_multi_subs_enable() {
  * Remove variables from any environment that would have this information
  */
 function acquia_search_multi_subs_uninstall() {
-  if (module_exists('search_api_solr')) {
-    $servers = db_select('search_api_server', 's')
-      ->fields('s')
-      ->execute()
-      ->fetchCol();
-    foreach ($servers as $server_id) {
-      $server = search_api_server_load($server_id);
-      unset($server->options['acquia_override_subscription']);
-      $server->save();
-    }
-  }
-  variable_del('acquia_search_multi_subs_subscription_cache_time');
+  // @TODO rewrite this for Drupal 8.
+  // Temporarily disabling the code so it can be uninstalled at least.
+//  if (module_exists('search_api_solr')) {
+//    $servers = db_select('search_api_server', 's')
+//      ->fields('s')
+//      ->execute()
+//      ->fetchCol();
+//    foreach ($servers as $server_id) {
+//      $server = search_api_server_load($server_id);
+//      unset($server->options['acquia_override_subscription']);
+//      $server->save();
+//    }
+//  }
+//  variable_del('acquia_search_multi_subs_subscription_cache_time');
 }
 
 /**
